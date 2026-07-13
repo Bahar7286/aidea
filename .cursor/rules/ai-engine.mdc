@@ -1,0 +1,32 @@
+---
+description: AI decision engine conventions for AgriTwin AI
+globs: ai/**/*.py
+alwaysApply: false
+---
+
+# AI Engine
+
+## Approach
+
+- Hybrid: rule base + ML + safety bounds.
+- Never send unvalidated data into the model — validation layer first.
+
+## Required prediction output
+
+Every prediction must include:
+
+- `irrigation_needed` (bool)
+- `duration` (minutes, optional if not needed)
+- `risk_level` (`low | medium | high | critical`)
+- `confidence_score` (0–100)
+- `explanation` (Turkish, human-readable)
+
+## Safety
+
+- Confidence < 60 → do not recommend automation.
+- Missing critical fields → mark analysis as limited and lower confidence.
+- Example thresholds: moisture < 30% + rain < 20% + last irrigation > 24h → irrigate; moisture > 70% → over-irrigation risk.
+
+## Datasets
+
+- Use fixed scenarios under `ai/datasets/` — do not generate random demo data.

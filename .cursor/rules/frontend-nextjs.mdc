@@ -1,0 +1,33 @@
+---
+description: Next.js frontend conventions for AgriTwin AI
+globs: frontend/**/*.{ts,tsx}
+alwaysApply: false
+---
+
+# Frontend — Next.js
+
+## Stack
+
+- Next.js App Router, TypeScript strict, Tailwind CSS, shadcn/ui
+- Charts: Recharts (not Plotly)
+- API calls go through `frontend/lib/api.ts`
+
+## Design tokens
+
+- Primary green: `#2E7D32` (see `designsystem.md`)
+- Risk colors: low=green, medium=yellow, high=orange, critical=red
+
+## UX
+
+- Screen IDs and layouts: `ekran-haritasi.md` (38 screens; MVP-20 first).
+- Shell / SourceBadge / ConfirmGate: `designsystem.md` §28A.
+- Dashboard must answer three questions at a glance: status / what to do / why.
+- UI copy in Turkish; explain technical terms with tooltips.
+- Label simulation and test data sources clearly on every relevant screen.
+- Critical actions (start irrigation, lab confirm) require a confirmation modal.
+- Mobile = responsive of the same route; do not create parallel mobile-only pages.
+
+## Components
+
+- Prefer functional components and existing shadcn/ui primitives.
+- Keep forms validated with clear Turkish error messages.

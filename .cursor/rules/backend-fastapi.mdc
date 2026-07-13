@@ -1,0 +1,28 @@
+---
+description: FastAPI backend conventions for AgriTwin AI
+globs: backend/**/*.py
+alwaysApply: false
+---
+
+# Backend — FastAPI
+
+## Stack
+
+- FastAPI + Pydantic v2 + SQLAlchemy 2.0
+- Align REST paths with `prd.md` §14 (`/auth`, `/farms`, `/sensor-readings`, `/predict/irrigation`, etc.)
+
+## Security
+
+- Users may only access their own farms and related data.
+- Passwords must be hashed; never store plaintext.
+- Protect mutating endpoints with auth.
+
+## Data
+
+- Sensor readings require `source_type` enum: `manual | simulation | test_dataset`.
+- Validate ranges before persisting (moisture 0–100, pH 0–14, etc.).
+- Rainfall probability lives on `SensorReadings` — no separate Weather table in MVP.
+
+## Errors
+
+- Return meaningful Turkish error messages and correct HTTP status codes.

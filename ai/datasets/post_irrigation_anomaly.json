@@ -1,0 +1,24 @@
+{
+  "id": "post_irrigation_anomaly",
+  "name": "Sulama sonrası beklenmeyen değişim",
+  "description": "Sulama yapıldı ama nem artmadı",
+  "reading": {
+    "soil_moisture": 29,
+    "soil_temperature": 26,
+    "air_temperature": 31,
+    "air_humidity": 40,
+    "rainfall_probability": 5,
+    "ph": 6.7,
+    "ec": 1.4,
+    "salinity": 1.0,
+    "last_irrigation_hours_ago": 2,
+    "irrigation_duration": 15,
+    "water_amount": 90
+  },
+  "expected": {
+    "anomaly": true,
+    "irrigation_needed": true,
+    "risk_level": "high",
+    "notes": "Sulama sonrası nem artmamış olabilir — vana/sensör kontrolü"
+  }
+}

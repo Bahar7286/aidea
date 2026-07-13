@@ -1,0 +1,20 @@
+{
+  "id": "normal",
+  "name": "Normal toprak durumu",
+  "description": "Nem yeterli, düşük risk",
+  "reading": {
+    "soil_moisture": 45,
+    "soil_temperature": 22,
+    "air_temperature": 26,
+    "air_humidity": 55,
+    "rainfall_probability": 20,
+    "ph": 6.5,
+    "ec": 1.2,
+    "salinity": 0.8,
+    "last_irrigation_hours_ago": 18
+  },
+  "expected": {
+    "irrigation_needed": false,
+    "risk_level": "low"
+  }
+}

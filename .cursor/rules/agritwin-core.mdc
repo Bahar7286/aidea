@@ -1,0 +1,35 @@
+---
+description: AgriTwin AI core product scope and development principles
+alwaysApply: true
+---
+
+# AgriTwin AI — Core Rules
+
+## Scope
+
+- MVP focuses on **soil moisture + irrigation decisions**.
+- Do NOT implement satellite, drone, **fertilizer prescriptions**, yield, disease, or full soil biology features.
+- Lab reports (P1) are allowed as **complementary** static chemistry data — never as a replacement claim for IoT moisture sensing.
+- Position the product as a limited but working digital twin prototype — never claim a full digital twin.
+
+## Data integrity
+
+- IoT/cloud data in MVP is always simulated. Label it with `source_type: "simulation"`.
+- Test datasets: `test_dataset`. Manual: `manual`. Lab: `lab_report` | `lab_manual`.
+- Lab parameters must store **value + unit**; user confirmation required before save (no silent OCR commit).
+- Never present simulated data as real sensor data in the UI.
+
+## Automation safety
+
+- Virtual irrigation must NEVER start without explicit user approval.
+- Low confidence predictions (< 60) must not recommend automation.
+
+## Development order
+
+1. Vertical slice first: register → create farm → enter data → irrigation recommendation.
+2. Do not build advanced ML, maps, or fertilizer advice before that slice works.
+3. Prefer P0 features from `plan.md` / `prd.md` over P1/P2. Lab upload is **P1**.
+
+## Docs
+
+- Primary: `prd.md`, `mvp.md`, `veri-mimarisi.md`, `iot-mimarisi.md`, `ekran-haritasi.md`, `plan.md`, `Progress.md`, `techstack.md`, `designsystem.md`.

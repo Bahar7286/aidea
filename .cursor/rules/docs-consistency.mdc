@@ -1,0 +1,21 @@
+---
+description: Keep AgriTwin product docs consistent when features change
+globs: "**/*.md"
+alwaysApply: false
+---
+
+# Documentation Consistency
+
+- When adding or changing a feature, update `prd.md`, `mvp.md`, `plan.md`, and `Progress.md` together.
+- Screen / UX IA changes also update `ekran-haritasi.md` and `designsystem.md` (§28A).
+- Data-platform / lab changes also update `veri-mimarisi.md`.
+- Field hardware / IoT node changes also update `iot-mimarisi.md`.
+- `Progress.md` is the source of truth for implementation status.
+- `canvas.md` / `projeanalizi.md` are strategy/vision — do not treat them as MVP scope.
+- Do not add MVP-out-of-scope features (satellite, drone, fertilizer **prescription**, yield).
+- Lab report upload is in-scope as **P1** (units + user confirm); OCR auto-save and lab APIs are P2.
+- Mark completed checklist items in `Progress.md` when implementation lands.
+- Keep document filenames as `plan.md` and `Progress.md` (not legacy aliases).
+- Prefer Recharts over Plotly in tech docs for the Next.js stack.
+- Keep README / AGENTS folder trees aligned with the real repo (docs live at repo root).
+- Mobile is responsive of the same screen ID — do not count separate mobile screens toward the 38.

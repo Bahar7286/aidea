@@ -1,0 +1,21 @@
+{
+  "id": "drought_risk",
+  "name": "Kuruma riski — Domates Serası demo",
+  "description": "Nem düşük, sıcaklık yüksek, yağış yok",
+  "reading": {
+    "soil_moisture": 28,
+    "soil_temperature": 25,
+    "air_temperature": 33,
+    "air_humidity": 42,
+    "rainfall_probability": 5,
+    "ph": 6.8,
+    "ec": 1.1,
+    "salinity": 0.7,
+    "last_irrigation_hours_ago": 36
+  },
+  "expected": {
+    "irrigation_needed": true,
+    "risk_level": "high",
+    "irrigation_duration": 14
+  }
+}
