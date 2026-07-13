@@ -94,7 +94,7 @@ class FarmCreate(BaseModel):
     area: float | None = None
     soil_type: str | None = None
     irrigation_type: str | None = None
-    crop_type: str | None = None
+    crop_type: str | None = Field(default=None, max_length=80)
     growth_stage: str | None = None
 
 
@@ -105,7 +105,7 @@ class FarmUpdate(BaseModel):
     soil_type: str | None = None
     irrigation_type: str | None = None
     is_active: bool | None = None
-    crop_type: str | None = None
+    crop_type: str | None = Field(default=None, max_length=80)
     growth_stage: str | None = None
 
 

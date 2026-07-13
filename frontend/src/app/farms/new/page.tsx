@@ -4,7 +4,10 @@ import { FormEvent, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { AppShell } from "@/components/app/AppShell";
+import { CropTypeField } from "@/components/app/CropTypeField";
 import { api } from "@/lib/api";
+import { SchematicMap } from "@/components/app/SchematicMap";
+import { Radio } from "lucide-react";
 
 const STEPS = ["Temel Bilgi", "Konum", "Bölge", "Özet"];
 
@@ -102,17 +105,11 @@ export default function NewFarmPage() {
                   <label className="label" htmlFor="crop_type">
                     Ürün türü
                   </label>
-                  <select
-                    className="input"
+                  <CropTypeField
                     id="crop_type"
                     value={form.crop_type}
-                    onChange={(e) => update("crop_type", e.target.value)}
-                  >
-                    <option value="domates">Domates</option>
-                    <option value="biber">Biber</option>
-                    <option value="salatalik">Salatalık</option>
-                    <option value="bugday">Buğday</option>
-                  </select>
+                    onChange={(v) => update("crop_type", v)}
+                  />
                 </div>
                 <div>
                   <label className="label" htmlFor="soil_type">
@@ -263,15 +260,24 @@ export default function NewFarmPage() {
         </div>
 
         <div className="app-surface overflow-hidden">
-          <div className="border-b border-[var(--auth-border)] px-4 py-2.5 text-sm font-semibold">
-            Harita önizleme (şematik)
+          <div className="flex items-center justify-between border-b border-[var(--auth-border)] px-4 py-2.5 text-sm font-semibold">
+            <span className="inline-flex items-center gap-2">
+              <Radio className="h-4 w-4 text-emerald-700" aria-hidden />
+              Şematik önizleme
+            </span>
+            <span className="text-[10px] font-medium text-[var(--auth-muted)]">
+              Alan değişince ölçeklenir
+            </span>
           </div>
-          <div className="relative aspect-[4/3] bg-gradient-to-br from-[#3d5a40] via-[#6b8f5e] to-[#a3b18a] p-6">
-            <div className="flex h-full items-center justify-center rounded-2xl border-2 border-dashed border-white/50 bg-white/10 text-center text-sm text-white">
-              Sınır çizimi P2
-              <br />
-              MVP: konum metni yeterli
-            </div>
+          <div className="p-3">
+            <SchematicMap
+              areaDa={form.area ? Number(form.area) : 2}
+              zones={[
+                { name: "Kuzey", moisture: 32 },
+                { name: "Orta", moisture: 28 },
+                { name: "Güney", moisture: 24 },
+              ]}
+            />
           </div>
         </div>
       </form>

@@ -83,21 +83,16 @@ export default function DataSourcesPage() {
                 <p className="mt-1 text-xs text-amber-800">{s.detail}</p>
               )}
               <div className="mt-3">
-                {s.key === "lab" ? (
-                  <Link
-                    href={`/farms/${farmId}`}
-                    className="btn btn-secondary w-full text-xs"
-                  >
-                    Arazi detayında lab
-                  </Link>
-                ) : (
-                  <Link
-                    href={`/farms/${farmId}/${act.href}`}
-                    className="btn btn-secondary w-full text-xs"
-                  >
-                    {act.label}
-                  </Link>
-                )}
+                <Link
+                  href={
+                    s.key === "lab"
+                      ? `/farms/${farmId}/lab/new`
+                      : `/farms/${farmId}/${act.href}`
+                  }
+                  className="btn btn-secondary w-full text-xs"
+                >
+                  {s.key === "lab" ? "Rapor yükle" : act.label}
+                </Link>
               </div>
             </div>
           );
@@ -153,21 +148,16 @@ export default function DataSourcesPage() {
                   </td>
                   <td className="px-4 py-3">{s.record_count}</td>
                   <td className="px-4 py-3">
-                    {s.key === "lab" ? (
-                      <Link
-                        href={`/farms/${farmId}`}
-                        className="text-[var(--auth-forest)] hover:underline"
-                      >
-                        Aç
-                      </Link>
-                    ) : (
-                      <Link
-                        href={`/farms/${farmId}/${act.href}`}
-                        className="text-[var(--auth-forest)] hover:underline"
-                      >
-                        {act.label}
-                      </Link>
-                    )}
+                    <Link
+                      href={
+                        s.key === "lab"
+                          ? `/farms/${farmId}/lab/new`
+                          : `/farms/${farmId}/${act.href}`
+                      }
+                      className="text-[var(--auth-forest)] hover:underline"
+                    >
+                      {s.key === "lab" ? "Rapor yükle" : act.label}
+                    </Link>
                   </td>
                 </tr>
               );

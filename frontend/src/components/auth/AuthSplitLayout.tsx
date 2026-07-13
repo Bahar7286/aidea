@@ -2,12 +2,15 @@
 
 import Link from "next/link";
 import { ReactNode } from "react";
+import { Leaf } from "lucide-react";
 
 type AuthSplitLayoutProps = {
   children: ReactNode;
   panelTitle: string;
   panelSubtitle: string;
   panelTone?: "login" | "register" | "verify" | "role" | "forgot";
+  /** Wider form column for role / multi-field screens */
+  wide?: boolean;
 };
 
 const panelArt: Record<string, string> = {
@@ -23,29 +26,25 @@ export function AuthSplitLayout({
   panelTitle,
   panelSubtitle,
   panelTone = "login",
+  wide = false,
 }: AuthSplitLayoutProps) {
   return (
-    <div className="auth-shell grid min-h-screen lg:grid-cols-2">
+    <div className="auth-shell grid min-h-screen xl:grid-cols-[minmax(320px,42%)_1fr]">
       <aside
-        className={`relative hidden overflow-hidden text-white lg:flex lg:flex-col lg:justify-between ${panelArt[panelTone]} p-10`}
+        className={`relative hidden overflow-hidden text-white lg:flex lg:flex-col lg:justify-between ${panelArt[panelTone]} p-10 xl:p-12`}
       >
         <div className="relative z-10">
-          <Link href="/" className="inline-flex items-center gap-2 text-lg font-semibold tracking-tight">
-            <span className="flex h-9 w-9 items-center justify-center rounded-full bg-white/15">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
-                <path
-                  d="M12 3c4 4 6 7 6 10a6 6 0 1 1-12 0c0-3 2-6 6-10Z"
-                  fill="currentColor"
-                />
-              </svg>
+          <Link href="/" className="inline-flex items-center gap-2.5 text-lg font-semibold tracking-tight">
+            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/15 text-lime-300">
+              <Leaf className="h-5 w-5" strokeWidth={2.25} aria-hidden />
             </span>
             AgriTwin AI
           </Link>
         </div>
-        <div className="relative z-10 max-w-md space-y-4 pb-8">
-          <div className="auth-panel-illustration mb-6 h-40 rounded-2xl bg-white/10 backdrop-blur-sm" />
-          <h2 className="text-3xl font-semibold leading-tight">{panelTitle}</h2>
-          <p className="text-base text-white/85">{panelSubtitle}</p>
+        <div className="relative z-10 max-w-lg space-y-4 pb-8">
+          <div className="auth-panel-illustration mb-6 h-44 rounded-2xl bg-white/10 backdrop-blur-sm" />
+          <h2 className="text-3xl font-semibold leading-tight xl:text-4xl">{panelTitle}</h2>
+          <p className="text-base text-white/85 xl:text-lg">{panelSubtitle}</p>
         </div>
         <p className="relative z-10 text-xs text-white/60">
           Toprak nemi ve sulama karar desteği — sınırlı dijital ikiz prototipi
@@ -56,12 +55,13 @@ export function AuthSplitLayout({
 
       <div className="flex flex-col bg-[var(--auth-bg)]">
         <div className="flex items-center justify-between px-5 py-4 lg:hidden">
-          <Link href="/" className="font-semibold text-[var(--auth-forest)]">
+          <Link href="/" className="inline-flex items-center gap-2 font-semibold text-[var(--auth-forest)]">
+            <Leaf className="h-5 w-5 text-emerald-600" aria-hidden />
             AgriTwin AI
           </Link>
         </div>
-        <div className="flex flex-1 items-center justify-center px-5 py-8 sm:px-10">
-          <div className="w-full max-w-md">{children}</div>
+        <div className="flex flex-1 items-center justify-center px-5 py-8 sm:px-10 lg:px-14">
+          <div className={`w-full ${wide ? "max-w-2xl" : "max-w-lg"}`}>{children}</div>
         </div>
         <div className="auth-mobile-footer border-t border-[var(--auth-border)] px-5 py-4 text-center text-xs text-[var(--auth-muted)] lg:hidden">
           Akıllı tarım · güvenli giriş

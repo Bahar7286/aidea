@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { FormEvent, useEffect, useState } from "react";
+import { FileUp, FileText, Upload } from "lucide-react";
 import { AppShell } from "@/components/app/AppShell";
 import { setSelectedFarmId } from "@/components/app/FarmSelector";
 import { api, Farm, LabParameter, ManagementZone } from "@/lib/api";
@@ -22,7 +23,10 @@ export default function LabNewPage() {
   const [region, setRegion] = useState("");
   const [notes, setNotes] = useState("");
   const [fileName, setFileName] = useState<string | null>(null);
+  const [originalName, setOriginalName] = useState<string | null>(null);
+  const [fileSize, setFileSize] = useState<number | null>(null);
   const [uploadMsg, setUploadMsg] = useState("");
+  const [dragOver, setDragOver] = useState(false);
   const [paramsList, setParamsList] = useState<LabParameter[]>([]);
   const [extractionConfidence, setExtractionConfidence] = useState<number | null>(
     null,
@@ -43,11 +47,17 @@ export default function LabNewPage() {
 
   async function onFile(file: File | null) {
     if (!file) return;
+    if (file.size > 20 * 1024 * 1024) {
+      setError("Dosya 20 MB sınırını aşıyor.");
+      return;
+    }
     setLoading(true);
     setError("");
     try {
       const res = await api.uploadLabFile(farmId, file);
       setFileName(res.file_name);
+      setOriginalName(res.original_name || file.name);
+      setFileSize(res.size_bytes ?? file.size);
       setUploadMsg(res.message);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Yükleme başarısız");
@@ -164,18 +174,42 @@ export default function LabNewPage() {
 
       <form
         onSubmit={saveDraft}
-        className="grid gap-6 lg:grid-cols-[1fr_260px]"
+        className="grid gap-6 xl:grid-cols-[1fr_280px]"
       >
         <div className="app-surface space-y-4 p-4 sm:p-6">
           {step === 1 && (
             <>
-              <div className="rounded-2xl border border-dashed border-[var(--auth-border)] bg-slate-50/80 px-4 py-10 text-center">
-                <p className="text-sm font-semibold">Rapor dosyanızı yükleyin</p>
-                <p className="mt-1 text-xs text-[var(--auth-muted)]">
-                  PDF, JPG, PNG veya Excel (maks. 20 MB). OCR yok — dosya
-                  saklanır.
+              <div
+                className={`rounded-2xl border-2 border-dashed px-4 py-10 text-center transition ${
+                  dragOver
+                    ? "border-emerald-500 bg-emerald-50"
+                    : "border-[var(--auth-border)] bg-slate-50/80"
+                }`}
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  setDragOver(true);
+                }}
+                onDragLeave={() => setDragOver(false)}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  setDragOver(false);
+                  onFile(e.dataTransfer.files?.[0] || null);
+                }}
+              >
+                <Upload
+                  className="mx-auto h-10 w-10 text-emerald-700"
+                  strokeWidth={2}
+                  aria-hidden
+                />
+                <p className="mt-3 text-sm font-semibold">
+                  Rapor dosyanızı sürükleyin veya seçin
                 </p>
-                <label className="btn btn-secondary mt-4 inline-flex cursor-pointer text-sm">
+                <p className="mt-1 text-xs text-[var(--auth-muted)]">
+                  PDF, JPG, PNG veya Excel (maks. 20 MB). Gerçek OCR yok — dosya
+                  saklanır; değerler onay adımında doğrulanır.
+                </p>
+                <label className="btn btn-primary mt-4 inline-flex cursor-pointer text-sm">
+                  <FileUp className="h-4 w-4" aria-hidden />
                   Dosya seç
                   <input
                     type="file"
@@ -185,9 +219,20 @@ export default function LabNewPage() {
                   />
                 </label>
                 {fileName && (
-                  <p className="mt-3 text-xs text-emerald-800">
-                    Kaydedildi: {fileName}
-                  </p>
+                  <div className="mx-auto mt-4 flex max-w-md items-start gap-3 rounded-xl bg-white p-3 text-left ring-1 ring-emerald-200">
+                    <FileText className="mt-0.5 h-5 w-5 shrink-0 text-emerald-700" aria-hidden />
+                    <div className="min-w-0 text-xs">
+                      <p className="truncate font-semibold text-emerald-900">
+                        {originalName || fileName}
+                      </p>
+                      <p className="text-[var(--auth-muted)]">
+                        Sunucu: {fileName}
+                        {fileSize != null
+                          ? ` · ${(fileSize / 1024).toFixed(1)} KB`
+                          : ""}
+                      </p>
+                    </div>
+                  </div>
                 )}
               </div>
               <div className="flex flex-wrap gap-2">
@@ -203,8 +248,9 @@ export default function LabNewPage() {
                   type="button"
                   className="btn btn-secondary"
                   onClick={useManualDefaults}
+                  disabled={loading}
                 >
-                  Manuel değer gir
+                  {fileName ? "Dosya + manuel değerler" : "Manuel değer gir"}
                 </button>
               </div>
               {uploadMsg && (
@@ -216,6 +262,11 @@ export default function LabNewPage() {
           {step === 2 && (
             <>
               <p className="text-sm font-semibold">Rapor bilgileri</p>
+              {fileName && (
+                <p className="rounded-xl bg-emerald-50 px-3 py-2 text-xs text-emerald-900">
+                  Yüklenen dosya: {originalName || fileName}
+                </p>
+              )}
               <div className="grid gap-3 sm:grid-cols-2">
                 <div>
                   <label className="label" htmlFor="lab">
@@ -314,12 +365,12 @@ export default function LabNewPage() {
               </div>
               {extractionConfidence != null && (
                 <p className="rounded-xl bg-sky-50 px-3 py-2 text-xs text-sky-900">
-                  Simüle çıkarım güveni: %{extractionConfidence}
+                  Simüle çıkarım güveni: %{extractionConfidence} — otomatik doğru
+                  sayılmaz.
                 </p>
               )}
               <p className="text-xs text-[var(--auth-muted)]">
-                {paramsList.length} parametre taslak olarak kaydedilecek; sonraki
-                adımda doğrulayacaksınız.
+                {paramsList.length} parametre taslak; sonraki adımda doğrulayacaksınız.
               </p>
               <div className="flex flex-wrap gap-2">
                 <button
@@ -337,13 +388,14 @@ export default function LabNewPage() {
           )}
         </div>
 
-        <aside className="app-surface hidden h-fit space-y-2 p-4 text-xs text-[var(--auth-muted)] lg:block">
+        <aside className="app-surface hidden h-fit space-y-2 p-4 text-xs text-[var(--auth-muted)] xl:block">
           <p className="text-sm font-semibold text-[var(--auth-ink)]">
             Yükleme rehberi
           </p>
           <p>Belge net olsun. Değerler kullanıcı onayı olmadan doğrulanmış sayılmaz.</p>
           <p>
-            Simüle çıkarım gerçek OCR değildir; demo değerler üretir.
+            Simüle çıkarım gerçek OCR değildir; demo değerler üretir. Lab verisi
+            sürekli IoT nem ölçümünün yerini tutmaz.
           </p>
         </aside>
       </form>

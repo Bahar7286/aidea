@@ -23,11 +23,9 @@ MVP şu probleme odaklanmaktadır:
 - **Proje Aşaması:** Sprint 5 — backend end-user hazır (CRUD + dikey dilim)
 - **Ürün Adı:** AgriTwin AI
 - **MVP Durumu:** Yerel uçtan uca demo + P1 lab/bölge + test dataset load + `/iot/ingest`
-- **Canlı Uygulama Durumu:** Prod deploy başlamadı
-- **IoT Durumu:** Simülasyon + Field Node JSON ingest (`simulation` / `iot`); donanım henüz yok
-- **AI Durumu:** Kural motoru + anomali kuralları; ML henüz yok
-- **Veri Durumu:** 6 test senaryosu; lab raporları (manuel, birimli, onaylı); çift derinlik nem alanları
-- **Dokümantasyon Durumu:** `veri-mimarisi.md` + `iot-mimarisi.md` kodla hizalanıyor
+- **AI Durumu:** Kural motoru (güvenlik tabanı) + isteğe bağlı OpenRouter Türkçe açıklama; ML henüz yok
+- **Canlı Uygulama Durumu:** Vercel frontend + Render API (`aidea-three.vercel.app` / `aidea-f8ji.onrender.com`)
+- **UX:** Geniş masaüstü shell, lucide ikonlar, IoT-öncelikli arazi detay, dinamik şematik harita, geniş ürün listesi + özel ürün
 
 ## 4. Tamamlanan Dokümanlar
 

@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.ai_engine import RuleInput, predict_irrigation
+from app.llm_explain import enrich_explanation
 from app.auth import get_current_user
 from app.database import get_db
 from app.deps import get_owned_farm
@@ -185,19 +186,18 @@ def predict(
 
     age_hours = (datetime.utcnow() - reading.timestamp).total_seconds() / 3600
     crop = farm.crops[0] if farm.crops else None
-    result = predict_irrigation(
-        RuleInput(
-            soil_moisture=reading.soil_moisture,
-            air_temperature=reading.air_temperature,
-            rainfall_probability=reading.rainfall_probability,
-            last_irrigation_hours_ago=reading.last_irrigation_hours_ago,
-            soil_type=farm.soil_type,
-            crop_type=crop.crop_type if crop else None,
-            growth_stage=crop.growth_stage if crop else None,
-            data_confidence=reading.data_confidence,
-            data_age_hours=age_hours,
-        )
+    rule_inp = RuleInput(
+        soil_moisture=reading.soil_moisture,
+        air_temperature=reading.air_temperature,
+        rainfall_probability=reading.rainfall_probability,
+        last_irrigation_hours_ago=reading.last_irrigation_hours_ago,
+        soil_type=farm.soil_type,
+        crop_type=crop.crop_type if crop else None,
+        growth_stage=crop.growth_stage if crop else None,
+        data_confidence=reading.data_confidence,
+        data_age_hours=age_hours,
     )
+    result = enrich_explanation(rule_inp, predict_irrigation(rule_inp))
     prediction = Prediction(
         farm_id=farm.id,
         irrigation_needed=result.irrigation_needed,

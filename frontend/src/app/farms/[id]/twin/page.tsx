@@ -47,6 +47,7 @@ export default function TwinPage() {
           insight={data.insight}
           sourceLabel={data.source_label}
           confidence={data.confidence}
+          areaDa={data.farm.area}
         />
       ) : (
         <p className="text-sm text-[var(--auth-muted)]">Harita yükleniyor...</p>

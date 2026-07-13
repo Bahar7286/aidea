@@ -158,7 +158,7 @@ export default function DashboardPage() {
           </div>
 
           <div className="grid gap-4 lg:grid-cols-2">
-            <SchematicMap zones={zones} />
+            <SchematicMap zones={zones} areaDa={overview?.farm.area} />
             <MoistureSparkline
               points={[
                 moisture,
@@ -188,16 +188,28 @@ export default function DashboardPage() {
                   </p>
                   <div className="flex flex-wrap gap-2 pt-2">
                     <Link
-                      href={`/farms/${selectedId}`}
+                      href={`/farms/${selectedId}/sensors/live`}
                       className="btn btn-primary text-sm"
                     >
-                      Arazi detayı
+                      Canlı sensör
                     </Link>
                     <Link
-                      href={`/farms/${selectedId}`}
+                      href={`/farms/${selectedId}/irrigation`}
                       className="btn btn-secondary text-sm"
                     >
-                      Senaryo / Sulama
+                      Sulama
+                    </Link>
+                    <Link
+                      href={`/farms/${selectedId}/scenarios`}
+                      className="btn btn-ghost text-sm"
+                    >
+                      Senaryolar
+                    </Link>
+                    <Link
+                      href={`/farms/${selectedId}/ai`}
+                      className="btn btn-ghost text-sm"
+                    >
+                      AI önerileri
                     </Link>
                   </div>
                 </>
@@ -208,7 +220,7 @@ export default function DashboardPage() {
                     href={`/farms/${selectedId}`}
                     className="font-semibold text-[var(--auth-forest)]"
                   >
-                    Veri girip analiz edin
+                    IoT simülasyonu yükleyip analiz edin
                   </Link>
                   .
                 </p>

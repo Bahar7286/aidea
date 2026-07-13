@@ -188,67 +188,6 @@ export default function FarmDetailPage() {
     }
   }
 
-  async function onSubmitLab(e: FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    setError("");
-    setLoading(true);
-    const form = new FormData(e.currentTarget);
-    const confirmed = form.get("user_confirmed") === "on";
-    if (!confirmed) {
-      setError("Laboratuvar kaydı için kullanıcı onayı zorunludur.");
-      setLoading(false);
-      return;
-    }
-    const zoneRaw = String(form.get("zone_id") || "");
-    const parameters = [
-      {
-        parameter_code: "ph",
-        value: Number(form.get("lab_ph")),
-        unit: String(form.get("lab_ph_unit") || "pH"),
-      },
-      {
-        parameter_code: "om",
-        value: Number(form.get("lab_om")),
-        unit: String(form.get("lab_om_unit") || "%"),
-      },
-      {
-        parameter_code: "p",
-        value: Number(form.get("lab_p")),
-        unit: String(form.get("lab_p_unit") || "ppm"),
-      },
-      {
-        parameter_code: "k",
-        value: Number(form.get("lab_k")),
-        unit: String(form.get("lab_k_unit") || "ppm"),
-      },
-    ].filter((p) => Number.isFinite(p.value));
-
-    if (parameters.length === 0) {
-      setError("En az bir laboratuvar parametresi girin.");
-      setLoading(false);
-      return;
-    }
-
-    try {
-      await api.createLabReport({
-        farm_id: farmId,
-        zone_id: zoneRaw ? Number(zoneRaw) : null,
-        lab_name: String(form.get("lab_name") || "Manuel lab"),
-        file_name: String(form.get("file_name") || "") || null,
-        sample_depth_cm: String(form.get("sample_depth_cm") || "") || null,
-        source_type: "lab_manual",
-        user_confirmed: true,
-        parameters,
-      });
-      e.currentTarget.reset();
-      await refreshSideData();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Lab kaydı başarısız.");
-    } finally {
-      setLoading(false);
-    }
-  }
-
   if (!farm) {
     return (
       <AppShell title="Arazi Detayı">
@@ -315,115 +254,171 @@ export default function FarmDetailPage() {
         </div>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        <form className="card space-y-3" onSubmit={onSubmitReading}>
-          <h2 className="font-semibold">Manuel veri girişi</h2>
-          <p className="text-xs text-muted">
-            Veri kaynağı: <strong>manual</strong>
-          </p>
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div>
-              <label className="label" htmlFor="soil_moisture">
-                Toprak nemi (%) *
-              </label>
-              <input
-                className="input"
-                id="soil_moisture"
-                name="soil_moisture"
-                type="number"
-                min={0}
-                max={100}
-                step="0.1"
-                defaultValue={34}
-                required
-              />
+      <div className="grid gap-6 xl:grid-cols-[1.15fr_1fr]">
+        <div className="space-y-4">
+          <div className="card space-y-3 border-emerald-200 bg-gradient-to-br from-emerald-50/80 to-white">
+            <div className="flex flex-wrap items-start justify-between gap-2">
+              <div>
+                <h2 className="font-semibold">Canlı sensör (simüle IoT)</h2>
+                <p className="text-xs text-muted">
+                  Öncelikli veri yolu · <strong>source_type: simulation</strong> · gerçek
+                  saha IoT iddiası yok
+                </p>
+              </div>
+              <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-800">
+                Simüle IoT
+              </span>
             </div>
-            <div>
-              <label className="label" htmlFor="air_temperature">
-                Hava sıcaklığı (°C) *
-              </label>
-              <input
-                className="input"
-                id="air_temperature"
-                name="air_temperature"
-                type="number"
-                step="0.1"
-                defaultValue={33}
-                required
-              />
-            </div>
-            <div>
-              <label className="label" htmlFor="rainfall_probability">
-                Yağış ihtimali (%) *
-              </label>
-              <input
-                className="input"
-                id="rainfall_probability"
-                name="rainfall_probability"
-                type="number"
-                min={0}
-                max={100}
-                defaultValue={5}
-                required
-              />
-            </div>
-            <div>
-              <label className="label" htmlFor="last_irrigation_hours_ago">
-                Son sulama (saat önce) *
-              </label>
-              <input
-                className="input"
-                id="last_irrigation_hours_ago"
-                name="last_irrigation_hours_ago"
-                type="number"
-                min={0}
-                defaultValue={36}
-                required
-              />
-            </div>
-            <div>
-              <label className="label" htmlFor="soil_temperature">
-                Toprak sıcaklığı (°C)
-              </label>
-              <input
-                className="input"
-                id="soil_temperature"
-                name="soil_temperature"
-                type="number"
-                step="0.1"
-                defaultValue={25}
-              />
-            </div>
-            <div>
-              <label className="label" htmlFor="air_humidity">
-                Hava nemi (%)
-              </label>
-              <input
-                className="input"
-                id="air_humidity"
-                name="air_humidity"
-                type="number"
-                min={0}
-                max={100}
-                defaultValue={42}
-              />
+            {reading && reading.source_type !== "manual" ? (
+              <div className="rounded-xl bg-white/80 p-3 text-sm ring-1 ring-emerald-100">
+                <p>
+                  Nem: <strong>%{reading.soil_moisture}</strong>
+                  {reading.soil_moisture_deep != null && (
+                    <> · Derin: <strong>%{reading.soil_moisture_deep}</strong></>
+                  )}
+                </p>
+                <p className="text-muted">
+                  Sıcaklık {reading.air_temperature ?? "—"}°C · Yağış %
+                  {reading.rainfall_probability ?? "—"} · Güven %
+                  {reading.data_confidence ?? "—"}
+                </p>
+              </div>
+            ) : (
+              <p className="text-sm text-muted">
+                Henüz simüle sensör okuması yok. Kuruma senaryosu veya canlı sayfadan
+                yükleyin.
+              </p>
+            )}
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={loadDroughtDemo}
+                disabled={loading}
+              >
+                {loading ? "Yükleniyor..." : "IoT simülasyon yükle (kuruma)"}
+              </button>
+              <Link
+                href={`/farms/${farmId}/sensors/live`}
+                className="btn btn-secondary"
+              >
+                Canlı sensör paneli
+              </Link>
+              <Link href={`/farms/${farmId}/twin`} className="btn btn-ghost">
+                Dijital ikiz
+              </Link>
             </div>
           </div>
-          {error && <p className="text-sm text-[var(--risk-critical)]">{error}</p>}
-          <div className="flex flex-wrap gap-2">
-            <button className="btn btn-primary" disabled={loading}>
-              {loading ? "Analiz..." : "Kaydet ve analiz et"}
-            </button>
-            <button
-              type="button"
-              className="btn btn-secondary"
-              onClick={loadDroughtDemo}
-              disabled={loading}
-            >
-              IoT simülasyon (kuruma)
-            </button>
-          </div>
-        </form>
+
+          <details className="card group space-y-3" open={!reading}>
+            <summary className="cursor-pointer list-none font-semibold marker:content-none">
+              <span className="flex items-center justify-between gap-2">
+                Manuel override / düzenle
+                <span className="text-xs font-normal text-muted group-open:hidden">
+                  Açmak için tıklayın
+                </span>
+              </span>
+            </summary>
+            <p className="text-xs text-muted">
+              Simüle ölçümleri geçersiz kılmak için manuel giriş ·{" "}
+              <strong>source_type: manual</strong>
+            </p>
+            <form className="space-y-3" onSubmit={onSubmitReading}>
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                <div>
+                  <label className="label" htmlFor="soil_moisture">
+                    Toprak nemi (%) *
+                  </label>
+                  <input
+                    className="input"
+                    id="soil_moisture"
+                    name="soil_moisture"
+                    type="number"
+                    min={0}
+                    max={100}
+                    step="0.1"
+                    defaultValue={reading?.soil_moisture ?? 34}
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="label" htmlFor="air_temperature">
+                    Hava sıcaklığı (°C) *
+                  </label>
+                  <input
+                    className="input"
+                    id="air_temperature"
+                    name="air_temperature"
+                    type="number"
+                    step="0.1"
+                    defaultValue={reading?.air_temperature ?? 33}
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="label" htmlFor="rainfall_probability">
+                    Yağış ihtimali (%) *
+                  </label>
+                  <input
+                    className="input"
+                    id="rainfall_probability"
+                    name="rainfall_probability"
+                    type="number"
+                    min={0}
+                    max={100}
+                    defaultValue={reading?.rainfall_probability ?? 5}
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="label" htmlFor="last_irrigation_hours_ago">
+                    Son sulama (saat önce) *
+                  </label>
+                  <input
+                    className="input"
+                    id="last_irrigation_hours_ago"
+                    name="last_irrigation_hours_ago"
+                    type="number"
+                    min={0}
+                    defaultValue={reading?.last_irrigation_hours_ago ?? 36}
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="label" htmlFor="soil_temperature">
+                    Toprak sıcaklığı (°C)
+                  </label>
+                  <input
+                    className="input"
+                    id="soil_temperature"
+                    name="soil_temperature"
+                    type="number"
+                    step="0.1"
+                    defaultValue={reading?.soil_temperature ?? 25}
+                  />
+                </div>
+                <div>
+                  <label className="label" htmlFor="air_humidity">
+                    Hava nemi (%)
+                  </label>
+                  <input
+                    className="input"
+                    id="air_humidity"
+                    name="air_humidity"
+                    type="number"
+                    min={0}
+                    max={100}
+                    defaultValue={reading?.air_humidity ?? 42}
+                  />
+                </div>
+              </div>
+              {error && <p className="text-sm text-[var(--risk-critical)]">{error}</p>}
+              <button className="btn btn-secondary" disabled={loading}>
+                {loading ? "Analiz..." : "Override kaydet ve analiz et"}
+              </button>
+            </form>
+          </details>
+        </div>
 
         <div className="space-y-4">
           <div className="card space-y-2">
@@ -482,10 +477,24 @@ export default function FarmDetailPage() {
                   Tahmini nem — 24s: %{prediction.moisture_24h} · 48s: %
                   {prediction.moisture_48h} · 72s: %{prediction.moisture_72h}
                 </p>
+                <div className="flex flex-wrap gap-2 pt-1">
+                  <Link
+                    href={`/farms/${farmId}/ai`}
+                    className="btn btn-secondary text-sm"
+                  >
+                    AI detay
+                  </Link>
+                  <Link
+                    href={`/farms/${farmId}/irrigation`}
+                    className="btn btn-ghost text-sm"
+                  >
+                    Sulama sayfası
+                  </Link>
+                </div>
               </>
             ) : (
               <p className="text-sm text-muted">
-                Veri girip analiz ettiğinizde öneri burada görünür.
+                IoT simülasyonu yükleyince öneri burada görünür.
               </p>
             )}
           </div>
@@ -545,140 +554,44 @@ export default function FarmDetailPage() {
           )}
         </form>
 
-        <form className="card space-y-3" onSubmit={onSubmitLab}>
-          <h2 className="font-semibold">Toprak analizi ekle</h2>
+        <div className="card space-y-3">
+          <h2 className="font-semibold">Toprak analizi (laboratuvar)</h2>
           <p className="text-xs text-muted">
-            Kaynak: <strong>lab_manual</strong> — birim zorunlu; OCR otomatik kayıt yok.
-            Organik madde / P / K cihazdan ölçülmez.
+            Lab IoT&apos;nin yerine geçmez — tamamlayıcı kimya. Dosya yükleyin; değerler
+            kullanıcı onayı olmadan doğrulanmış sayılmaz. OCR otomatik kayıt yok.
           </p>
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div>
-              <label className="label" htmlFor="lab_name">
-                Laboratuvar *
-              </label>
-              <input
-                className="input"
-                id="lab_name"
-                name="lab_name"
-                defaultValue="Toros Lab"
-                required
-              />
-            </div>
-            <div>
-              <label className="label" htmlFor="zone_id">
-                Bölge
-              </label>
-              <select className="input" id="zone_id" name="zone_id" defaultValue="">
-                <option value="">Arazi geneli</option>
-                {zones.map((z) => (
-                  <option key={z.id} value={z.id}>
-                    {z.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="label" htmlFor="file_name">
-                Rapor dosya adı
-              </label>
-              <input
-                className="input"
-                id="file_name"
-                name="file_name"
-                placeholder="rapor.pdf"
-              />
-            </div>
-            <div>
-              <label className="label" htmlFor="sample_depth_cm">
-                Örnek derinliği
-              </label>
-              <input
-                className="input"
-                id="sample_depth_cm"
-                name="sample_depth_cm"
-                placeholder="0-30 cm"
-              />
-            </div>
-            <div>
-              <label className="label" htmlFor="lab_ph">
-                pH
-              </label>
-              <div className="flex gap-2">
-                <input className="input" id="lab_ph" name="lab_ph" type="number" step="0.01" />
-                <input
-                  className="input w-24"
-                  name="lab_ph_unit"
-                  defaultValue="pH"
-                  aria-label="pH birimi"
-                />
-              </div>
-            </div>
-            <div>
-              <label className="label" htmlFor="lab_om">
-                Organik madde
-              </label>
-              <div className="flex gap-2">
-                <input className="input" id="lab_om" name="lab_om" type="number" step="0.01" />
-                <input
-                  className="input w-24"
-                  name="lab_om_unit"
-                  defaultValue="%"
-                  aria-label="OM birimi"
-                />
-              </div>
-            </div>
-            <div>
-              <label className="label" htmlFor="lab_p">
-                Fosfor (P)
-              </label>
-              <div className="flex gap-2">
-                <input className="input" id="lab_p" name="lab_p" type="number" step="0.01" />
-                <input
-                  className="input w-24"
-                  name="lab_p_unit"
-                  defaultValue="ppm"
-                  aria-label="P birimi"
-                />
-              </div>
-            </div>
-            <div>
-              <label className="label" htmlFor="lab_k">
-                Potasyum (K)
-              </label>
-              <div className="flex gap-2">
-                <input className="input" id="lab_k" name="lab_k" type="number" step="0.01" />
-                <input
-                  className="input w-24"
-                  name="lab_k_unit"
-                  defaultValue="ppm"
-                  aria-label="K birimi"
-                />
-              </div>
-            </div>
+          <div className="flex flex-wrap gap-2">
+            <Link
+              href={`/farms/${farmId}/lab/new`}
+              className="btn btn-primary text-sm"
+            >
+              Rapor dosyası yükle
+            </Link>
+            <Link href={`/farms/${farmId}/lab`} className="btn btn-secondary text-sm">
+              Analiz listesi
+            </Link>
           </div>
-          <label className="flex items-center gap-2 text-sm">
-            <input type="checkbox" name="user_confirmed" />
-            Değerleri ve birimleri doğruladım
-          </label>
-          <button className="btn btn-primary" disabled={loading}>
-            {loading ? "Kaydediliyor..." : "Lab kaydını ekle"}
-          </button>
           {labReports.length > 0 && (
             <ul className="space-y-2 text-sm">
               {labReports.slice(0, 3).map((r) => (
                 <li key={r.id} className="border-b border-border pb-2">
-                  <strong>{r.lab_name}</strong> · {r.source_type}
-                  {r.user_confirmed ? " · onaylı" : ""}
-                  <div className="text-xs text-muted">
-                    {r.parameters
-                      .map((p) => `${p.parameter_code}=${p.value} ${p.unit}`)
-                      .join(" · ")}
-                  </div>
+                  <Link
+                    href={
+                      r.user_confirmed
+                        ? `/farms/${farmId}/lab/${r.id}`
+                        : `/farms/${farmId}/lab/${r.id}/verify`
+                    }
+                    className="font-semibold text-[var(--auth-forest)] hover:underline"
+                  >
+                    {r.lab_name}
+                  </Link>{" "}
+                  · {r.source_type}
+                  {r.user_confirmed ? " · onaylı" : " · onay bekliyor"}
                 </li>
               ))}
             </ul>
           )}
-        </form>
+        </div>
       </section>
 
       <section className="card space-y-4">
@@ -689,14 +602,22 @@ export default function FarmDetailPage() {
               Şimdi sulama, bekleme ve sulama yapmama seçeneklerini karşılaştırın.
             </p>
           </div>
-          <button
-            type="button"
-            className="btn btn-secondary"
-            onClick={runScenarios}
-            disabled={actionLoading || !reading}
-          >
-            {actionLoading ? "Hesaplanıyor..." : "Senaryoları çalıştır"}
-          </button>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={runScenarios}
+              disabled={actionLoading || !reading}
+            >
+              {actionLoading ? "Hesaplanıyor..." : "Senaryoları çalıştır"}
+            </button>
+            <Link
+              href={`/farms/${farmId}/scenarios`}
+              className="btn btn-ghost text-sm"
+            >
+              Tam senaryo sayfası
+            </Link>
+          </div>
         </div>
         {scenarios ? (
           <div className="overflow-x-auto">
