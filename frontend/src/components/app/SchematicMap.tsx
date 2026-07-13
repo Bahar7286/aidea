@@ -11,9 +11,9 @@ export function SchematicMap({
     zones.length > 0
       ? zones
       : [
-          { name: "Bölge A", moisture: null, tone: "neutral" as const },
-          { name: "Bölge B", moisture: null, tone: "neutral" as const },
-          { name: "Bölge C", moisture: null, tone: "neutral" as const },
+          { name: "Bölge A", moisture: null },
+          { name: "Bölge B", moisture: null },
+          { name: "Bölge C", moisture: null },
         ];
 
   const color = (z: Zone) => {

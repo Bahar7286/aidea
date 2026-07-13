@@ -46,10 +46,10 @@ export function MoistureSparkline({
               unit="%"
             />
             <Tooltip
-              formatter={(value: number | string) => [
-                `${typeof value === "number" ? value.toFixed(1) : value}%`,
-                "Nem",
-              ]}
+              formatter={(value) => {
+                const v = typeof value === "number" ? value.toFixed(1) : value ?? "";
+                return [`${v}%`, "Nem"];
+              }}
               contentStyle={{
                 borderRadius: 12,
                 borderColor: "#d8e2d6",

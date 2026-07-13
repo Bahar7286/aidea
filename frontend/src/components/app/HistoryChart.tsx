@@ -68,10 +68,10 @@ export function HistoryChart({
               width={36}
             />
             <Tooltip
-              formatter={(value: number | string) => [
-                `${typeof value === "number" ? value.toFixed(1) : value}${unit ? ` ${unit}` : ""}`,
-                label,
-              ]}
+              formatter={(value) => {
+                const v = typeof value === "number" ? value.toFixed(1) : value ?? "";
+                return [`${v}${unit ? ` ${unit}` : ""}`, label];
+              }}
               contentStyle={{
                 borderRadius: 12,
                 borderColor: "#d8e2d6",
