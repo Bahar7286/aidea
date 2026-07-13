@@ -1,0 +1,20 @@
+{
+  "id": "over_irrigation",
+  "name": "Aşırı sulama riski",
+  "description": "Nem çok yüksek",
+  "reading": {
+    "soil_moisture": 78,
+    "soil_temperature": 20,
+    "air_temperature": 24,
+    "air_humidity": 70,
+    "rainfall_probability": 40,
+    "ph": 6.4,
+    "ec": 1.0,
+    "salinity": 0.6,
+    "last_irrigation_hours_ago": 4
+  },
+  "expected": {
+    "irrigation_needed": false,
+    "risk_level": "high"
+  }
+}

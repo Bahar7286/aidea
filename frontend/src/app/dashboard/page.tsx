@@ -8,9 +8,9 @@ import {
   setSelectedFarmId,
 } from "@/components/app/FarmSelector";
 import { KpiCard } from "@/components/app/KpiCard";
+import { FarmMapPanel } from "@/components/app/FarmMapPanel";
 import { MoistureSparkline } from "@/components/app/MoistureSparkline";
-import { SchematicMap } from "@/components/app/SchematicMap";
-import { api, Farm, FarmOverview } from "@/lib/api";
+import { api, Farm, FarmOverview, WeatherSnapshot } from "@/lib/api";
 
 const riskLabel: Record<string, string> = {
   low: "Düşük",
@@ -23,6 +23,7 @@ export default function DashboardPage() {
   const [farms, setFarms] = useState<Farm[]>([]);
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [overview, setOverview] = useState<FarmOverview | null>(null);
+  const [weather, setWeather] = useState<WeatherSnapshot | null>(null);
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -52,6 +53,10 @@ export default function DashboardPage() {
       .farmOverview(selectedId)
       .then(setOverview)
       .catch((err) => setError(err.message));
+    api
+      .getWeather(selectedId)
+      .then(setWeather)
+      .catch(() => setWeather(null));
   }, [selectedId]);
 
   const reading = overview?.latest_reading;
@@ -174,15 +179,53 @@ export default function DashboardPage() {
           </div>
 
           <div className="grid gap-4 lg:grid-cols-2">
-            <SchematicMap zones={zones} areaDa={overview?.farm.area} />
-            <MoistureSparkline
-              points={[
-                moisture,
-                prediction?.moisture_24h,
-                prediction?.moisture_48h,
-                prediction?.moisture_72h,
-              ]}
+            <FarmMapPanel
+              farm={overview?.farm}
+              zones={zones}
+              areaDa={overview?.farm.area}
+              sourceType={reading?.source_type || "simulation"}
+              title="Arazi haritası"
+              subtitle="OpenStreetMap + nem bölgeler"
             />
+            <div className="space-y-4">
+              <MoistureSparkline
+                points={[
+                  moisture,
+                  prediction?.moisture_24h,
+                  prediction?.moisture_48h,
+                  prediction?.moisture_72h,
+                ]}
+              />
+              <div className="app-surface grid gap-3 p-4 sm:grid-cols-3">
+                <div>
+                  <p className="text-xs text-[var(--auth-muted)]">Hava (Open-Meteo)</p>
+                  <p className="text-lg font-bold">
+                    {weather?.temperature_c != null
+                      ? `${weather.temperature_c.toFixed(0)} °C`
+                      : "—"}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs text-[var(--auth-muted)]">Nem</p>
+                  <p className="text-lg font-bold">
+                    {weather?.humidity_pct != null
+                      ? `%${weather.humidity_pct.toFixed(0)}`
+                      : "—"}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs text-[var(--auth-muted)]">Yağış ihtimali</p>
+                  <p className="text-lg font-bold">
+                    {weather?.precip_probability_pct != null
+                      ? `%${weather.precip_probability_pct.toFixed(0)}`
+                      : "—"}
+                  </p>
+                </div>
+                {weather?.error && (
+                  <p className="sm:col-span-3 text-xs text-amber-800">{weather.error}</p>
+                )}
+              </div>
+            </div>
           </div>
 
           <div className="grid gap-4 lg:grid-cols-3">

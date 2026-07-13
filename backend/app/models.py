@@ -81,6 +81,8 @@ class Farm(Base):
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False, index=True)
     name: Mapped[str] = mapped_column(String(120), nullable=False)
     location: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    latitude: Mapped[float | None] = mapped_column(Float, nullable=True)
+    longitude: Mapped[float | None] = mapped_column(Float, nullable=True)
     area: Mapped[float | None] = mapped_column(Float, nullable=True)
     soil_type: Mapped[str | None] = mapped_column(String(80), nullable=True)
     irrigation_type: Mapped[str | None] = mapped_column(String(80), nullable=True)

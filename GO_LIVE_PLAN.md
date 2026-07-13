@@ -123,7 +123,7 @@ Build sonrası tarayıcı bu URL’e istek atar (`frontend/src/lib/api.ts`). Pro
 | Ne | Nasıl | Amaç |
 |----|-------|------|
 | `SECRET_KEY` | Platform secret store; asla git’e commit etme | JWT imza |
-| Demo kullanıcılar | İsteğe bağlı: prod DB’de bir kez `python -m scripts.seed_demo` (Render shell / one-off) | Jüri / iç demo |
+| Demo kullanıcılar | `SEED_DEMO_USERS=1` (veya Postgres’te otomatik) + `POST /auth/demo-login` | Jüri / iç demo |
 | Şifre | `DEMO_USERS.md` — `Secret12` | Yalnızca demo; gerçek kullanıcıya zorla dağıtma |
 
 ---
@@ -161,12 +161,12 @@ Supabase Auth / `NEXT_PUBLIC_SUPABASE_*` `.env.example`’da **opsiyonel** tanı
 
 | Öncelik | Servis | Ne eklenir | Nerede / nasıl | Amaç / sonuç |
 |---------|--------|------------|----------------|--------------|
-| P1 | Gerçek hava durumu | OpenWeather / WeatherAPI key | Backend yeni client; manuel yağış alanını doldur veya zenginleştir | Daha az manuel girdili tahmin girdisi |
+| P1 | Gerçek hava durumu | **Open-Meteo** (ücretsiz, key yok) — `GET /weather/{farm_id}` as-built | Dashboard + canlı sensör | Tahmin girdisi |
 | P1 | Supabase Storage | Bucket + service role | Lab PDF/görsel saklama | Lab yükleme dosyalarının kalıcılığı |
 | P2 | Gerçek IoT ingest | Device token + `POST` sensor veya webhook | Mevcut `source_type` genişletme (`simulation` değil); LoRa/Wi-Fi gateway → HTTPS | Gerçek nem akışı; UI’da simülasyon etiketi kalkar |
 | P2 | MQTT broker | HiveMQ Cloud / EMQX / Mosquitto | `iot-mimarisi.md`; backend subscriber → DB | Alan cihazlarından sürekli yayın |
 | P2 | OCR | Google Cloud Vision / Document AI / Azure Form Recognizer | Lab upload pipeline; **kullanıcı onayı sonrası kaydet** (mevcut kural) | Rapor metninden P/K/pH vb. çıktı |
-| P2 | Harita | Leaflet + OSM/MapTiler tiles | Frontend F13; tile API key (ticari tile ise) | Arazi konumu görselleştirme |
+| P1 | Harita | **Leaflet + OSM** (as-built dashboard/twin/login) — Google Maps yalnızca `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` varsa | Arazi konumu görselleştirme |
 | P2 | ML hosting | Aynı FastAPI süreci veya model artifact (joblib) | `ai/` + Scikit-learn/XGBoost; ayrı “AI microservice” şart değil | Sınıflandırma/regresyon skorları |
 | P2 | Sentry | DSN env | Frontend + FastAPI SDK | Hata izleme |
 | P2 | Custom domain | DNS | Vercel + Render | Marka URL |

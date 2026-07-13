@@ -55,6 +55,8 @@ def create_farm(
         user_id=current_user.id,
         name=payload.name,
         location=payload.location,
+        latitude=payload.latitude,
+        longitude=payload.longitude,
         area=payload.area,
         soil_type=payload.soil_type,
         irrigation_type=payload.irrigation_type,

@@ -222,6 +222,28 @@ def login_json(payload: UserLogin, db: Session = Depends(get_db)):
     return _issue_token(user)
 
 
+@router.post("/demo-login", response_model=TokenOut)
+def demo_login(payload: UserLogin, db: Session = Depends(get_db)):
+    """Ensure demo personas exist, then login. Used by login page demo buttons."""
+    from app.demo_bootstrap import seed_demo_users
+
+    email = payload.email.strip().lower()
+    if not email.endswith("@agritwin.demo"):
+        raise HTTPException(status_code=400, detail="Yalnızca demo hesaplar için.")
+    seed_demo_users(db)
+    user = _find_user_by_login(db, email)
+    if not user or not verify_password(payload.password, user.password_hash):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="E-posta/telefon veya şifre hatalı.",
+        )
+    if getattr(user, "is_active", True) is False:
+        raise HTTPException(status_code=403, detail="Hesap pasif.")
+    user.last_login_at = datetime.utcnow()
+    db.commit()
+    return _issue_token(user)
+
+
 @router.post("/token", response_model=TokenOut)
 def login_form(
     payload: OAuth2PasswordRequestForm = Depends(),

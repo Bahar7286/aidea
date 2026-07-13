@@ -135,6 +135,8 @@ export type Farm = {
   id: number;
   name: string;
   location: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
   area: number | null;
   soil_type: string | null;
   irrigation_type: string | null;
@@ -148,6 +150,20 @@ export type Farm = {
     growth_stage: string | null;
     planting_date: string | null;
   }>;
+};
+
+export type WeatherSnapshot = {
+  provider: string;
+  latitude: number;
+  longitude: number;
+  coord_source?: string | null;
+  location?: string | null;
+  temperature_c?: number | null;
+  humidity_pct?: number | null;
+  precipitation_mm?: number | null;
+  precip_probability_pct?: number | null;
+  fetched_at?: string | null;
+  error?: string | null;
 };
 
 export type FarmOverview = {
@@ -353,10 +369,18 @@ export type CustomSimulateResult = {
 export type RecommendationItem = {
   id: string;
   prediction_id: number | null;
-  category: "irrigation" | "climate" | "other";
+  category:
+    | "irrigation"
+    | "moisture_forecast"
+    | "data_quality"
+    | "lab_iot_compare"
+    | "weather_context"
+    | "climate"
+    | "other"
+    | string;
   title: string;
   summary: string;
-  priority: "high" | "medium" | "low";
+  priority: "high" | "medium" | "low" | string;
   risk_level?: Prediction["risk_level"] | null;
   confidence_score?: number | null;
   irrigation_needed?: boolean | null;
@@ -630,6 +654,14 @@ export const api = {
       { method: "POST", body: JSON.stringify(body) },
       false,
     ),
+  demoLogin: (body: { email: string; password: string }) =>
+    request<{ access_token: string; user: User }>(
+      "/auth/demo-login",
+      { method: "POST", body: JSON.stringify(body) },
+      false,
+    ),
+  getWeather: (farmId: number) =>
+    request<WeatherSnapshot>(`/weather/${farmId}`),
   listFarms: (includeInactive = false) =>
     request<Farm[]>(
       `/farms${includeInactive ? "?include_inactive=true" : ""}`,

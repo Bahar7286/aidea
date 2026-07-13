@@ -104,6 +104,8 @@ def seed_farmer_farm(db, owner: User) -> Farm:
             user_id=owner.id,
             name="Domates Serası",
             location="Antalya / Serik",
+            latitude=36.9167,
+            longitude=31.1000,
             area=2.5,
             soil_type="tinli",
             irrigation_type="damla",
@@ -126,6 +128,10 @@ def seed_farmer_farm(db, owner: User) -> Farm:
                 notes="Kuzey sera hücreleri",
             )
         )
+    else:
+        if farm.latitude is None or farm.longitude is None:
+            farm.latitude = 36.9167
+            farm.longitude = 31.1000
 
     device = (
         db.query(Device)
@@ -235,6 +241,8 @@ def seed_light_farm(db, owner: User) -> Farm:
         user_id=owner.id,
         name="Danışman Demo Tarlası",
         location="Konya / Karapınar",
+        latitude=37.7147,
+        longitude=33.5506,
         area=8.0,
         soil_type="kumlu",
         irrigation_type="yagmurlama",

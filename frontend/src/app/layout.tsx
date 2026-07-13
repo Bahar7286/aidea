@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "AgriTwin AI",
   description:
-    "Toprak nemi ve sulama kararına odaklanan dijital ikiz prototipi",
+    "Toprak nemi ve sulama karar desteği",
 };
 
 export default function RootLayout({

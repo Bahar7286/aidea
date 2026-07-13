@@ -1,15 +1,14 @@
-import json
 from datetime import datetime
-from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.ai_engine import RuleInput, predict_irrigation
-from app.llm_explain import enrich_explanation
 from app.auth import get_current_user
 from app.database import get_db
+from app.datasets_path import list_scenario_metas, load_scenario
 from app.deps import get_owned_farm
+from app.llm_explain import enrich_explanation
 from app.models import Prediction, RiskLevel, SensorReading, SourceType, User
 from app.schemas import (
     DatasetInfoOut,
@@ -17,45 +16,19 @@ from app.schemas import (
     PredictionOut,
     SensorReadingCreate,
     SensorReadingOut,
+    WeatherOut,
 )
 from app.validation import compute_data_confidence
+from app.weather import weather_for_farm
 
 router = APIRouter(tags=["data"])
-
-DATASETS_DIR = Path(__file__).resolve().parents[3] / "ai" / "datasets"
-
-
-def _load_scenario_file(scenario: str) -> dict:
-    path = DATASETS_DIR / f"{scenario}.json"
-    if not path.exists():
-        available = sorted(p.stem for p in DATASETS_DIR.glob("*.json"))
-        raise HTTPException(
-            status_code=400,
-            detail=f"Senaryo bulunamadı: {scenario}. Mevcut: {', '.join(available)}",
-        )
-    with path.open(encoding="utf-8") as f:
-        return json.load(f)
 
 
 @router.get("/datasets", response_model=list[DatasetInfoOut])
 def list_datasets(current_user: User = Depends(get_current_user)):
-    """List fixed MVP test scenarios under ai/datasets/."""
+    """List fixed MVP test scenarios under ai/datasets/ (bundled for Render)."""
     _ = current_user
-    items: list[DatasetInfoOut] = []
-    for path in sorted(DATASETS_DIR.glob("*.json")):
-        try:
-            with path.open(encoding="utf-8") as f:
-                meta = json.load(f)
-        except (OSError, json.JSONDecodeError):
-            meta = {}
-        items.append(
-            DatasetInfoOut(
-                id=path.stem,
-                name=str(meta.get("name") or path.stem),
-                description=meta.get("description"),
-            )
-        )
-    return items
+    return [DatasetInfoOut(**m) for m in list_scenario_metas()]
 
 
 @router.post("/datasets/load", response_model=SensorReadingOut, status_code=201)
@@ -66,7 +39,10 @@ def load_dataset(
 ):
     """Load a fixed test scenario as source_type=test_dataset (not simulation)."""
     farm = get_owned_farm(db, payload.farm_id, current_user, require_active=True)
-    scenario = _load_scenario_file(payload.scenario)
+    try:
+        scenario = load_scenario(payload.scenario)
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
     reading_data = scenario.get("reading") or {}
     if "soil_moisture" not in reading_data:
         raise HTTPException(status_code=400, detail="Senaryo okuma verisi eksik.")
@@ -230,3 +206,30 @@ def list_predictions(
         .all()
     )
     return [PredictionOut.model_validate(r) for r in rows]
+
+
+@router.get("/weather/{farm_id}", response_model=WeatherOut)
+def farm_weather(
+    farm_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Open-Meteo current conditions for farm lat/lng (or Turkey / demo default)."""
+    farm = get_owned_farm(db, farm_id, current_user)
+    data = weather_for_farm(farm)
+    # Optionally enrich latest reading's rainfall probability when weather succeeds
+    if data.get("precip_probability_pct") is not None and not data.get("error"):
+        reading = (
+            db.query(SensorReading)
+            .filter(SensorReading.farm_id == farm_id)
+            .order_by(SensorReading.timestamp.desc())
+            .first()
+        )
+        if reading and reading.rainfall_probability is None:
+            reading.rainfall_probability = float(data["precip_probability_pct"])
+            if data.get("temperature_c") is not None and reading.air_temperature is None:
+                reading.air_temperature = float(data["temperature_c"])
+            if data.get("humidity_pct") is not None and reading.air_humidity is None:
+                reading.air_humidity = float(data["humidity_pct"])
+            db.commit()
+    return WeatherOut(**data)

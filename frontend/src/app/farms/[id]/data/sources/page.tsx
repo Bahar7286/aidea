@@ -22,17 +22,46 @@ export default function DataSourcesPage() {
   const [farm, setFarm] = useState<Farm | null>(null);
   const [sources, setSources] = useState<DataSource[]>([]);
   const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [datasets, setDatasets] = useState<Array<{ id: string; name: string }>>(
+    [],
+  );
+  const [scenario, setScenario] = useState("drought_risk");
+
+  async function refresh() {
+    const [f, s] = await Promise.all([
+      api.getFarm(farmId),
+      api.dataSources(farmId),
+    ]);
+    setFarm(f);
+    setSources(s);
+  }
 
   useEffect(() => {
     if (!farmId) return;
     setSelectedFarmId(farmId);
-    Promise.all([api.getFarm(farmId), api.dataSources(farmId)])
-      .then(([f, s]) => {
-        setFarm(f);
-        setSources(s);
+    refresh().catch((err) => setError(err.message));
+    api
+      .listDatasets()
+      .then((rows) => {
+        setDatasets(rows.map((r) => ({ id: r.id, name: r.name })));
+        if (rows[0]) setScenario(rows[0].id);
       })
-      .catch((err) => setError(err.message));
+      .catch(() => undefined);
   }, [farmId]);
+
+  async function loadTestDataset() {
+    setBusy(true);
+    setError("");
+    try {
+      await api.loadDataset(farmId, scenario);
+      await refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Test veri yüklenemedi");
+    } finally {
+      setBusy(false);
+    }
+  }
 
   const active = sources.filter((s) => s.status === "active").length;
 
@@ -40,9 +69,34 @@ export default function DataSourcesPage() {
     <AppShell title="Veri Kaynakları Merkezi" farmName={farm?.name}>
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <FarmSelector farmId={farmId} suffixPath="/data/sources" />
-        <Link href={`/farms/${farmId}/data/manual`} className="btn btn-primary text-sm">
-          + Yeni kaynak / manuel
-        </Link>
+        <div className="flex flex-wrap items-center gap-2">
+          <select
+            className="input max-w-[12rem] text-sm"
+            value={scenario}
+            onChange={(e) => setScenario(e.target.value)}
+            aria-label="Test senaryosu"
+          >
+            {(datasets.length
+              ? datasets
+              : [{ id: "drought_risk", name: "Kuruma riski" }]
+            ).map((d) => (
+              <option key={d.id} value={d.id}>
+                {d.name}
+              </option>
+            ))}
+          </select>
+          <button
+            type="button"
+            className="btn btn-secondary text-sm"
+            disabled={busy}
+            onClick={loadTestDataset}
+          >
+            {busy ? "…" : "Test veri seti yükle"}
+          </button>
+          <Link href={`/farms/${farmId}/data/manual`} className="btn btn-primary text-sm">
+            + Yeni kaynak / manuel
+          </Link>
+        </div>
       </div>
 
       {error && <p className="mb-3 text-sm text-[var(--risk-critical)]">{error}</p>}

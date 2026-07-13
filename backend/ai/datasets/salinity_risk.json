@@ -1,0 +1,21 @@
+{
+  "id": "salinity_risk",
+  "name": "Tuzluluk riski",
+  "description": "EC ve tuzluluk yüksek",
+  "reading": {
+    "soil_moisture": 40,
+    "soil_temperature": 24,
+    "air_temperature": 29,
+    "air_humidity": 45,
+    "rainfall_probability": 15,
+    "ph": 7.8,
+    "ec": 4.5,
+    "salinity": 3.2,
+    "last_irrigation_hours_ago": 30
+  },
+  "expected": {
+    "irrigation_needed": false,
+    "risk_level": "medium",
+    "notes": "Tuzluluk yüksek — sulama miktarı dikkatli seçilmeli"
+  }
+}

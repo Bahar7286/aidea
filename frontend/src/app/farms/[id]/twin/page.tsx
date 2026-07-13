@@ -41,6 +41,7 @@ export default function TwinPage() {
       {error && <p className="mb-3 text-sm text-[var(--risk-critical)]">{error}</p>}
       {data ? (
         <TwinMapPanel
+          farm={data.farm}
           zones={data.zones as TwinZone[]}
           selectedName={selected}
           onSelect={(z) => setSelected(z.name)}

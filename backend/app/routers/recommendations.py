@@ -1,5 +1,7 @@
 """AI recommendation list/detail + farm hub (reports/alerts/settings)."""
 
+from datetime import datetime
+
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
@@ -10,6 +12,7 @@ from app.deps import get_owned_farm
 from app.models import (
     IrrigationEvent,
     IrrigationStatus,
+    LabParameter,
     LabReport,
     Prediction,
     SensorReading,
@@ -25,10 +28,12 @@ from app.schemas import (
     RecommendationSummaryOut,
 )
 from app.water_report import compute_water_usage
+from app.weather import weather_for_farm
 
 router = APIRouter(tags=["recommendations-hub"])
 
 MIN_CONFIDENCE = 60.0
+STALE_HOURS = 24.0
 
 
 def _priority(risk: str) -> str:
@@ -45,6 +50,224 @@ def _title(pred: Prediction) -> str:
     if pred.risk_level.value in {"high", "critical"}:
         return "Nem riski uyarısı"
     return "Sulama durumu stabil"
+
+
+def _build_insight_items(
+    db: Session,
+    farm_id: int,
+    preds: list[Prediction],
+    reading: SensorReading | None,
+) -> list[RecommendationItemOut]:
+    items: list[RecommendationItemOut] = []
+    now = datetime.utcnow()
+    latest_pred = preds[0] if preds else None
+    base_ts = (
+        reading.timestamp
+        if reading
+        else (latest_pred.created_at if latest_pred else now)
+    )
+
+    # --- Moisture forecast trend ---
+    if latest_pred and (
+        latest_pred.moisture_24h is not None
+        or latest_pred.moisture_48h is not None
+        or latest_pred.moisture_72h is not None
+    ):
+        m0 = reading.soil_moisture if reading else None
+        m72 = latest_pred.moisture_72h
+        trend = ""
+        pri = "medium"
+        if m0 is not None and m72 is not None:
+            delta = m72 - m0
+            if delta <= -8:
+                trend = (
+                    f"72 saatte nem ≈%{m72:.0f} (şimdi %{m0:.0f}). "
+                    "Kuruma eğilimi — sulama planını gözden geçirin."
+                )
+                pri = "high"
+            elif delta >= 5:
+                trend = (
+                    f"Nem 72s ≈%{m72:.0f}’ye yükselme eğiliminde. "
+                    "Aşırı sulamadan kaçının."
+                )
+            else:
+                trend = (
+                    f"24/48/72s projeksiyon: "
+                    f"%{latest_pred.moisture_24h or '—'} / "
+                    f"%{latest_pred.moisture_48h or '—'} / "
+                    f"%{latest_pred.moisture_72h or '—'}."
+                )
+                pri = "low"
+        else:
+            trend = "Nem projeksiyonu mevcut; canlı ölçümle birlikte izleyin."
+            pri = "low"
+        items.append(
+            RecommendationItemOut(
+                id="insight-moisture-forecast",
+                prediction_id=latest_pred.id,
+                category="moisture_forecast",
+                title="Nem eğilimi (24–72s)",
+                summary=trend,
+                priority=pri,  # type: ignore[arg-type]
+                confidence_score=latest_pred.confidence_score,
+                created_at=latest_pred.created_at,
+                automation_allowed=False,
+            )
+        )
+
+    # --- Data quality / stale ---
+    if reading is None:
+        items.append(
+            RecommendationItemOut(
+                id="insight-no-data",
+                category="data_quality",
+                title="Ölçüm verisi yok",
+                summary="Öneri üretmek için manuel, IoT simülasyon veya test veri seti ekleyin.",
+                priority="high",
+                created_at=base_ts,
+                automation_allowed=False,
+            )
+        )
+    else:
+        age_h = (now - reading.timestamp).total_seconds() / 3600
+        if age_h >= STALE_HOURS:
+            items.append(
+                RecommendationItemOut(
+                    id="insight-stale-data",
+                    category="data_quality",
+                    title="Veri güncelliği düşük",
+                    summary=(
+                        f"Son okuma ≈{age_h:.0f} saat önce ({reading.source_type.value}). "
+                        "Canlı sensör veya simülasyonu yenileyin."
+                    ),
+                    priority="medium",
+                    created_at=reading.timestamp,
+                    automation_allowed=False,
+                )
+            )
+        if reading.data_confidence is not None and reading.data_confidence < 60:
+            items.append(
+                RecommendationItemOut(
+                    id="insight-low-confidence",
+                    category="data_quality",
+                    title="Düşük veri güveni",
+                    summary=(
+                        f"Veri güveni %{reading.data_confidence:.0f}. "
+                        "Otomasyon önerilmez; ölçümü doğrulayın."
+                    ),
+                    priority="high",
+                    confidence_score=reading.data_confidence,
+                    created_at=reading.timestamp,
+                    automation_allowed=False,
+                )
+            )
+        if reading.source_type.value == "simulation":
+            items.append(
+                RecommendationItemOut(
+                    id="insight-sim-badge",
+                    category="data_quality",
+                    title="Simülasyon kaynağı",
+                    summary=(
+                        "Gösterilen IoT değerleri simülasyondur — gerçek saha sensörü değildir."
+                    ),
+                    priority="low",
+                    created_at=reading.timestamp,
+                    automation_allowed=False,
+                )
+            )
+
+    # --- Lab vs IoT compare (complementary, not fertilizer Rx) ---
+    lab = (
+        db.query(LabReport)
+        .filter(LabReport.farm_id == farm_id, LabReport.user_confirmed.is_(True))
+        .order_by(LabReport.created_at.desc())
+        .first()
+    )
+    if lab and reading:
+        lab_ph = (
+            db.query(LabParameter)
+            .filter(
+                LabParameter.report_id == lab.id,
+                LabParameter.parameter_code.ilike("%ph%"),
+            )
+            .first()
+        )
+        if (
+            lab_ph
+            and lab_ph.value is not None
+            and reading.ph is not None
+            and abs(float(lab_ph.value) - float(reading.ph)) >= 0.8
+        ):
+            items.append(
+                RecommendationItemOut(
+                    id="insight-lab-iot-ph",
+                    category="lab_iot_compare",
+                    title="Lab ile IoT pH farkı",
+                    summary=(
+                        f"Lab pH {lab_ph.value}{lab_ph.unit or ''} vs IoT {reading.ph}. "
+                        "Lab kimya profilidir; sürekli nem IoT’den — gübre reçetesi üretilmez."
+                    ),
+                    priority="medium",
+                    created_at=lab.created_at,
+                    automation_allowed=False,
+                )
+            )
+        elif reading.ec is not None and reading.ec >= 2.5:
+            items.append(
+                RecommendationItemOut(
+                    id="insight-lab-iot-ec",
+                    category="lab_iot_compare",
+                    title="EC / tuzluluk izleme",
+                    summary=(
+                        f"IoT EC {reading.ec}. Lab profili ile birlikte izleyin; "
+                        "gübreleme reçetesi MVP kapsamı dışıdır."
+                    ),
+                    priority="low",
+                    created_at=reading.timestamp,
+                    automation_allowed=False,
+                )
+            )
+        elif lab:
+            items.append(
+                RecommendationItemOut(
+                    id="insight-lab-present",
+                    category="lab_iot_compare",
+                    title="Lab + nem birlikte",
+                    summary=(
+                        "Onaylı lab raporu mevcut. IoT nemi tamamlar; laboratuvarın yerini almaz."
+                    ),
+                    priority="low",
+                    created_at=lab.created_at,
+                    automation_allowed=False,
+                )
+            )
+
+    # --- Water savings insight ---
+    events = db.query(IrrigationEvent).filter(IrrigationEvent.farm_id == farm_id).all()
+    finished = [
+        e
+        for e in events
+        if e.status in {IrrigationStatus.completed, IrrigationStatus.stopped}
+    ]
+    if finished:
+        water = compute_water_usage([e.water_amount for e in finished])
+        if water.session_count and water.savings_liters:
+            items.append(
+                RecommendationItemOut(
+                    id="insight-water-savings",
+                    category="other",
+                    title="Tahmini su tasarrufu",
+                    summary=(
+                        f"≈{water.savings_liters:.0f} L tasarruf (kural tabanlı). "
+                        f"{water.note}"
+                    ),
+                    priority="low",
+                    created_at=base_ts,
+                    automation_allowed=False,
+                )
+            )
+
+    return items
 
 
 @router.get(
@@ -82,7 +305,9 @@ def recommendation_detail(
 
     sources: list[str] = []
     if reading:
-        sources.append(f"Toprak nemi %{reading.soil_moisture:.0f} ({reading.source_type.value})")
+        sources.append(
+            f"Toprak nemi %{reading.soil_moisture:.0f} ({reading.source_type.value})"
+        )
         if reading.air_temperature is not None:
             sources.append(f"Hava sıcaklığı {reading.air_temperature:.0f}°C")
         if reading.rainfall_probability is not None:
@@ -99,7 +324,10 @@ def recommendation_detail(
     if not pred.irrigation_needed:
         block = "AI sulama önermiyor."
     elif pred.confidence_score < MIN_CONFIDENCE:
-        block = f"Güven %{pred.confidence_score:.0f} — otomasyon için en az %{MIN_CONFIDENCE:.0f} gerekir."
+        block = (
+            f"Güven %{pred.confidence_score:.0f} — otomasyon için "
+            f"en az %{MIN_CONFIDENCE:.0f} gerekir."
+        )
 
     return RecommendationDetailOut(
         prediction=PredictionOut.model_validate(pred),
@@ -123,7 +351,7 @@ def list_recommendations(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    get_owned_farm(db, farm_id, current_user)
+    farm = get_owned_farm(db, farm_id, current_user)
     preds = (
         db.query(Prediction)
         .filter(Prediction.farm_id == farm_id)
@@ -146,40 +374,88 @@ def list_recommendations(
                 confidence_score=p.confidence_score,
                 irrigation_needed=p.irrigation_needed,
                 created_at=p.created_at,
-                automation_allowed=p.irrigation_needed and p.confidence_score >= MIN_CONFIDENCE,
+                automation_allowed=p.irrigation_needed
+                and p.confidence_score >= MIN_CONFIDENCE,
             )
         )
 
-    # Climate / anomaly items as secondary recommendations
-    findings = collect_farm_anomalies(db, farm_id)
     reading = (
         db.query(SensorReading)
         .filter(SensorReading.farm_id == farm_id)
         .order_by(SensorReading.timestamp.desc())
         .first()
     )
+
+    # Anomalies → data_quality / weather_context
+    findings = collect_farm_anomalies(db, farm_id)
     for f in findings:
+        cat = (
+            "weather_context"
+            if "temp" in f.code or "rain" in f.code or "hava" in f.code.lower()
+            else "data_quality"
+        )
         items.append(
             RecommendationItemOut(
                 id=f"anom-{f.code}",
                 prediction_id=None,
-                category=(
-                    "climate"
-                    if "temp" in f.code or "rain" in f.code
-                    else "other"
-                ),
+                category=cat,  # type: ignore[arg-type]
                 title=f.title,
                 summary=f.message,
                 priority="high" if f.severity == "critical" else "medium",
-                created_at=reading.timestamp if reading else preds[0].created_at if preds else None,  # type: ignore[arg-type]
+                created_at=reading.timestamp
+                if reading
+                else (preds[0].created_at if preds else None),  # type: ignore[arg-type]
                 automation_allowed=False,
             )
         )
 
+    # Insights (forecast, stale, lab, water)
+    # Avoid broken placeholder: build without re-fetching farm via wrong user
+    insight_items = _build_insight_items(db, farm_id, preds, reading)
+    # Strip the broken farm lookup from helper — rewrite helper cleanly without that call
+    items.extend([i for i in insight_items if i.id != "insight-broken"])
+
+    # Live weather context (Open-Meteo)
+    try:
+        wx = weather_for_farm(farm)
+        if not wx.get("error") and (
+            wx.get("temperature_c") is not None
+            or wx.get("precip_probability_pct") is not None
+        ):
+            precip = wx.get("precip_probability_pct")
+            temp = wx.get("temperature_c")
+            humid = wx.get("humidity_pct")
+            parts = []
+            if temp is not None:
+                parts.append(f"{temp:.0f}°C")
+            if humid is not None:
+                parts.append(f"nem %{humid:.0f}")
+            if precip is not None:
+                parts.append(f"yağış ihtimali %{precip:.0f}")
+            summary = "Open-Meteo: " + ", ".join(parts) + "."
+            pri = "medium" if precip is not None and precip >= 50 else "low"
+            if precip is not None and precip >= 60 and reading and reading.soil_moisture and reading.soil_moisture >= 30:
+                summary += " Yağış olası — gereksiz sulamayı erteleyebilirsiniz."
+                pri = "medium"
+            items.append(
+                RecommendationItemOut(
+                    id="insight-weather",
+                    category="weather_context",
+                    title="Hava durumu bağlamı",
+                    summary=summary,
+                    priority=pri,  # type: ignore[arg-type]
+                    created_at=reading.timestamp if reading else datetime.utcnow(),
+                    automation_allowed=False,
+                )
+            )
+    except Exception:
+        pass
+
     if category and category not in {"all", "tumu", "tümü"}:
-        # MVP: fertilizer/disease → empty; irrigation/climate/other filter
         if category in {"fertilizer", "disease", "gubreleme", "hastalik"}:
             items = []
+        elif category == "climate":
+            items = [i for i in items if i.category in {"climate", "weather_context"}]
         else:
             items = [i for i in items if i.category == category]
     if priority and priority not in {"all", "tumu"}:

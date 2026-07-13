@@ -1,6 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { FarmMapPanel } from "@/components/app/FarmMapPanel";
+import { SourceBadge } from "@/components/app/SourceBadge";
 
 export type TwinZone = {
   id?: number | null;
@@ -21,14 +23,8 @@ const LAYERS = [
   { key: "ec", label: "EC" },
 ] as const;
 
-function toneHex(m: number | null | undefined) {
-  if (m == null) return "#94a3b8";
-  if (m < 22) return "#f97316";
-  if (m < 28) return "#fbbf24";
-  return "#22c55e";
-}
-
 export function TwinMapPanel({
+  farm,
   zones,
   selectedName,
   onSelect,
@@ -37,6 +33,13 @@ export function TwinMapPanel({
   confidence,
   areaDa,
 }: {
+  farm?: {
+    latitude?: number | null;
+    longitude?: number | null;
+    location?: string | null;
+    name?: string | null;
+    area?: number | null;
+  } | null;
   zones: TwinZone[];
   selectedName?: string;
   onSelect?: (z: TwinZone) => void;
@@ -52,138 +55,62 @@ export function TwinMapPanel({
     humidity: false,
     ec: false,
   });
-  const [zoom, setZoom] = useState(1);
 
   const selected = useMemo(
     () => zones.find((z) => z.name === selectedName) || zones[0],
     [zones, selectedName],
   );
 
-  const area = Math.max(0.5, areaDa ?? 2);
-  const scale = Math.min(1.4, Math.max(0.55, Math.sqrt(area / 2))) * zoom;
-  const cols = Math.min(3, Math.max(1, zones.length || 1));
-  const aspect =
-    area >= 8 ? "aspect-[16/9]" : area >= 4 ? "aspect-[5/3]" : "aspect-[5/4]";
-  const haLabel = (area / 10).toFixed(area >= 10 ? 1 : 2);
-
-  const plot = zones.slice(0, cols);
-  const display =
-    plot.length > 0
-      ? plot
+  const mapZones = (
+    zones.length
+      ? zones
       : [
           { name: "Bölge A", soil_moisture: null },
           { name: "Bölge B", soil_moisture: null },
           { name: "Bölge C", soil_moisture: null },
-        ];
-
-  function slicePath(i: number, n: number) {
-    const pad = 6;
-    const w = 100 - pad * 2;
-    const h = 100 - pad * 2;
-    const sliceW = w / n;
-    const x0 = pad + i * sliceW;
-    const x1 = x0 + sliceW;
-    const tw = (i % 2 === 0 ? 2.5 : -2) * (scale / zoom);
-    const bw = (i % 2 === 0 ? -3 : 2.5) * (scale / zoom);
-    return `M ${x0 + 1} ${pad + tw} L ${x1 - 1} ${pad - tw * 0.4} L ${x1 + bw * 0.25} ${pad + h + bw} L ${x0 - bw * 0.2} ${pad + h - bw * 0.35} Z`;
-  }
+        ]
+  ).map((z) => ({
+    name: z.name,
+    moisture: layers.moisture ? z.soil_moisture : null,
+  }));
 
   return (
     <div className="grid gap-4 xl:grid-cols-[1fr_300px]">
-      <div className="app-surface overflow-hidden">
-        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[var(--auth-border)] px-4 py-2.5">
-          <div>
-            <p className="text-sm font-semibold">Dijital ikiz haritası</p>
-            <p className="text-[10px] text-[var(--auth-muted)]">
-              Şematik viz — uydu değil · {area.toFixed(1)} da (~{haLabel} ha) ·{" "}
-              {sourceLabel ? `Kaynak: ${sourceLabel}` : "veri yok"}
-            </p>
-          </div>
-          <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-bold text-emerald-800">
-            Simüle IoT
-          </span>
-        </div>
-        <div
-          className={`relative ${aspect} bg-gradient-to-br from-[#2d4a32] via-[#5a7a45] to-[#9cb37a] p-3 sm:p-5`}
-        >
-          <div className="absolute left-3 top-3 z-10 flex flex-col gap-1">
+      <div className="space-y-3">
+        <FarmMapPanel
+          farm={farm}
+          zones={mapZones}
+          areaDa={areaDa ?? farm?.area}
+          sourceType={sourceLabel || "simulation"}
+          title="Dijital ikiz haritası"
+          subtitle={`OSM + nem poligonları · ${sourceLabel ? `Kaynak: ${sourceLabel}` : "veri yok"}`}
+          heightClass="h-[22rem] sm:h-[28rem]"
+        />
+        <div className="flex flex-wrap gap-2 px-1">
+          {zones.map((z) => (
             <button
+              key={z.name}
               type="button"
-              className="rounded bg-white/90 px-2 py-1 text-xs shadow"
-              onClick={() => setZoom((z) => Math.min(1.6, z + 0.12))}
+              onClick={() => onSelect?.(z)}
+              className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                selected?.name === z.name
+                  ? "bg-[var(--auth-forest)] text-white"
+                  : "bg-white text-[var(--auth-muted)] ring-1 ring-[var(--auth-border)]"
+              }`}
             >
-              +
+              {z.name}
+              {z.soil_moisture != null ? ` · %${z.soil_moisture}` : ""}
             </button>
-            <button
-              type="button"
-              className="rounded bg-white/90 px-2 py-1 text-xs shadow"
-              onClick={() => setZoom((z) => Math.max(0.7, z - 0.12))}
-            >
-              −
-            </button>
-          </div>
-          <div
-            className="mx-auto h-full transition-transform duration-500 ease-out"
-            style={{ width: `${Math.round(scale * 92)}%`, maxWidth: "100%" }}
-          >
-            <svg viewBox="0 0 100 100" className="h-full w-full drop-shadow-lg">
-              {display.map((z, i) => {
-                const active = selected?.name === z.name;
-                return (
-                  <g
-                    key={z.name}
-                    role="button"
-                    tabIndex={0}
-                    className="cursor-pointer"
-                    onClick={() => onSelect?.(z as TwinZone)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" || e.key === " ") onSelect?.(z as TwinZone);
-                    }}
-                  >
-                    <path
-                      d={slicePath(i, display.length)}
-                      fill={toneHex(z.soil_moisture)}
-                      fillOpacity={0.9}
-                      stroke={active ? "#fff" : "rgba(255,255,255,0.4)"}
-                      strokeWidth={active ? 1.4 : 0.55}
-                    />
-                    <text
-                      x={6 + ((88 / display.length) * (i + 0.5))}
-                      y={26}
-                      textAnchor="middle"
-                      fill="#fff"
-                      style={{ fontSize: 3.8, fontWeight: 700 }}
-                    >
-                      {z.name}
-                    </text>
-                    {layers.moisture && (
-                      <text
-                        x={6 + ((88 / display.length) * (i + 0.5))}
-                        y={40}
-                        textAnchor="middle"
-                        fill="#fff"
-                        style={{ fontSize: 7, fontWeight: 800 }}
-                      >
-                        {z.soil_moisture != null ? `%${z.soil_moisture}` : "—"}
-                      </text>
-                    )}
-                    <circle
-                      cx={6 + ((88 / display.length) * (i + 0.72))}
-                      cy={18}
-                      r={1.4}
-                      fill="#7dd3fc"
-                    />
-                  </g>
-                );
-              })}
-            </svg>
-          </div>
+          ))}
         </div>
       </div>
 
       <div className="space-y-3">
         <div className="app-surface space-y-2 p-4">
-          <p className="text-sm font-semibold">Katmanlar</p>
+          <div className="flex items-center justify-between gap-2">
+            <p className="text-sm font-semibold">Katmanlar</p>
+            <SourceBadge source={sourceLabel || "simulation"} />
+          </div>
           {LAYERS.map((l) => (
             <label key={l.key} className="flex items-center gap-2 text-sm">
               <input

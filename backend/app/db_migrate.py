@@ -1,4 +1,4 @@
-"""Ensure SQLite columns exist for iterative MVP schema changes."""
+"""Ensure missing columns exist for iterative MVP schema changes (SQLite + Postgres)."""
 
 from sqlalchemy import text
 
@@ -6,8 +6,19 @@ from app.database import engine
 
 
 def ensure_sqlite_columns() -> None:
-    if not str(engine.url).startswith("sqlite"):
-        return
+    """Backward-compatible name — also migrates Postgres."""
+    ensure_schema_columns()
+
+
+def ensure_schema_columns() -> None:
+    url = str(engine.url).lower()
+    if url.startswith("sqlite"):
+        _ensure_sqlite()
+    elif "postgresql" in url or url.startswith("postgres"):
+        _ensure_postgres()
+
+
+def _ensure_sqlite() -> None:
     with engine.begin() as conn:
         cols = {
             row[1]
@@ -21,7 +32,6 @@ def ensure_sqlite_columns() -> None:
                     "ALTER TABLE users ADD COLUMN email_verified BOOLEAN DEFAULT 1"
                 )
             )
-            # Existing accounts remain usable
             conn.execute(text("UPDATE users SET email_verified = 1 WHERE email_verified IS NULL"))
 
         farm_cols = {
@@ -33,6 +43,10 @@ def ensure_sqlite_columns() -> None:
                 text("ALTER TABLE farms ADD COLUMN is_active BOOLEAN DEFAULT 1")
             )
             conn.execute(text("UPDATE farms SET is_active = 1 WHERE is_active IS NULL"))
+        if "latitude" not in farm_cols:
+            conn.execute(text("ALTER TABLE farms ADD COLUMN latitude FLOAT"))
+        if "longitude" not in farm_cols:
+            conn.execute(text("ALTER TABLE farms ADD COLUMN longitude FLOAT"))
 
         try:
             device_cols = {
@@ -127,3 +141,13 @@ def ensure_sqlite_columns() -> None:
         for col, sql in reading_alters.items():
             if reading_cols and col not in reading_cols:
                 conn.execute(text(sql))
+
+
+def _ensure_postgres() -> None:
+    with engine.begin() as conn:
+        conn.execute(
+            text("ALTER TABLE farms ADD COLUMN IF NOT EXISTS latitude DOUBLE PRECISION")
+        )
+        conn.execute(
+            text("ALTER TABLE farms ADD COLUMN IF NOT EXISTS longitude DOUBLE PRECISION")
+        )

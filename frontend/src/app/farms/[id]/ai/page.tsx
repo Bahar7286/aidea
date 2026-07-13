@@ -11,10 +11,11 @@ import { api, Farm, RecommendationSummary } from "@/lib/api";
 const CATEGORIES = [
   { id: "all", label: "Tümü" },
   { id: "irrigation", label: "Sulama" },
-  { id: "climate", label: "İklim" },
+  { id: "moisture_forecast", label: "Nem tahmini" },
+  { id: "weather_context", label: "Hava" },
+  { id: "data_quality", label: "Veri kalitesi" },
+  { id: "lab_iot_compare", label: "Lab ↔ IoT" },
   { id: "other", label: "Diğer" },
-  { id: "fertilizer", label: "Gübreleme" },
-  { id: "disease", label: "Hastalık" },
 ] as const;
 
 function priTone(p: string) {
@@ -125,9 +126,10 @@ export default function AiRecommendationsPage() {
         ))}
       </div>
 
-      {(category === "fertilizer" || category === "disease") && (
+      {(category === "all") && (
         <p className="mb-3 rounded-xl bg-slate-100 px-3 py-2 text-xs text-[var(--auth-muted)]">
-          Bu kategori MVP kapsamı dışındadır (nem + sulama odaklı).
+          Öneriler sulama, nem eğilimi, hava, veri kalitesi ve lab–IoT karşılaştırmasıdır.
+          Gübre reçetesi / hastalık teşhisi MVP dışı.
         </p>
       )}
 

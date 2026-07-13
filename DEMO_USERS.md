@@ -19,6 +19,8 @@ cd backend
 .venv\Scripts\python.exe -m scripts.seed_demo
 ```
 
+**Canlı (Render / Supabase):** Environment’a `SEED_DEMO_USERS=1` ekleyin (veya boş bırakın — Postgres’te otomatik upsert). API ayağa kalkınca 4 demo kullanıcı + Domates Serası yazılır. Alternatif: `POST /auth/demo-login` (login sayfasındaki demo butonları).
+
 Hesaplar e-posta doğrulanmış gelir; doğrulama kodu gerekmez.
 
 ## Önerilen demo sırası

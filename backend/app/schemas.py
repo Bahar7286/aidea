@@ -91,6 +91,8 @@ class MessageOut(BaseModel):
 class FarmCreate(BaseModel):
     name: str = Field(min_length=1, max_length=120)
     location: str | None = None
+    latitude: float | None = Field(default=None, ge=-90, le=90)
+    longitude: float | None = Field(default=None, ge=-180, le=180)
     area: float | None = None
     soil_type: str | None = None
     irrigation_type: str | None = None
@@ -101,6 +103,8 @@ class FarmCreate(BaseModel):
 class FarmUpdate(BaseModel):
     name: str | None = None
     location: str | None = None
+    latitude: float | None = Field(default=None, ge=-90, le=90)
+    longitude: float | None = Field(default=None, ge=-180, le=180)
     area: float | None = None
     soil_type: str | None = None
     irrigation_type: str | None = None
@@ -123,6 +127,8 @@ class FarmOut(BaseModel):
     id: int
     name: str
     location: str | None
+    latitude: float | None = None
+    longitude: float | None = None
     area: float | None
     soil_type: str | None
     irrigation_type: str | None
@@ -197,10 +203,21 @@ class PredictionOut(BaseModel):
         from_attributes = True
 
 
+RecommendationCategory = Literal[
+    "irrigation",
+    "moisture_forecast",
+    "data_quality",
+    "lab_iot_compare",
+    "weather_context",
+    "climate",
+    "other",
+]
+
+
 class RecommendationItemOut(BaseModel):
     id: str
     prediction_id: int | None = None
-    category: Literal["irrigation", "climate", "other"] = "irrigation"
+    category: RecommendationCategory = "irrigation"
     title: str
     summary: str
     priority: Literal["high", "medium", "low"]
@@ -209,6 +226,21 @@ class RecommendationItemOut(BaseModel):
     irrigation_needed: bool | None = None
     created_at: datetime | None = None
     automation_allowed: bool = False
+
+
+class WeatherOut(BaseModel):
+    provider: str = "open-meteo"
+    latitude: float
+    longitude: float
+    coord_source: str | None = None
+    location: str | None = None
+    temperature_c: float | None = None
+    humidity_pct: float | None = None
+    precipitation_mm: float | None = None
+    precip_probability_pct: float | None = None
+    fetched_at: str | None = None
+    error: str | None = None
+    raw_time: str | None = None
 
 
 class RecommendationSummaryOut(BaseModel):

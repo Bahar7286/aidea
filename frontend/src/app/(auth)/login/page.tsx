@@ -69,7 +69,27 @@ export default function LoginPage() {
   async function demoLogin(demoEmail: string) {
     setEmail(demoEmail);
     setPassword(DEMO_PASSWORD);
-    await loginWith({ email: demoEmail, password: DEMO_PASSWORD }, false);
+    setError("");
+    setLoading(true);
+    try {
+      const data = await api.demoLogin({
+        email: demoEmail,
+        password: DEMO_PASSWORD,
+      });
+      setSession(data.access_token, data.user);
+      localStorage.removeItem("agritwin_remember");
+      router.push("/dashboard");
+      router.refresh();
+    } catch (err) {
+      try {
+        await loginWith({ email: demoEmail, password: DEMO_PASSWORD }, false);
+        return;
+      } catch {
+        setError(err instanceof Error ? err.message : "Demo giriş başarısız.");
+      }
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (

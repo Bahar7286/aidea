@@ -11,6 +11,7 @@ import {
   api,
   Farm,
   SensorReading,
+  WeatherSnapshot,
 } from "@/lib/api";
 
 export default function LiveSensorsPage() {
@@ -26,6 +27,7 @@ export default function LiveSensorsPage() {
   const [datasets, setDatasets] = useState<
     Array<{ id: string; name: string }>
   >([]);
+  const [weather, setWeather] = useState<WeatherSnapshot | null>(null);
 
   async function load() {
     const [f, readings, anom] = await Promise.all([
@@ -45,8 +47,18 @@ export default function LiveSensorsPage() {
     load().catch((err) => setError(err.message));
     api
       .listDatasets()
-      .then((rows) => setDatasets(rows.map((r) => ({ id: r.id, name: r.name }))))
+      .then((rows) => {
+        const mapped = rows.map((r) => ({ id: r.id, name: r.name }));
+        setDatasets(mapped);
+        if (mapped.length && !mapped.some((d) => d.id === scenario)) {
+          setScenario(mapped[0].id);
+        }
+      })
       .catch(() => undefined);
+    api
+      .getWeather(farmId)
+      .then(setWeather)
+      .catch(() => setWeather(null));
   }, [farmId]);
 
   async function simulate() {
@@ -151,15 +163,26 @@ export default function LiveSensorsPage() {
         <KpiCard
           label="Hava sıcaklığı"
           value={
-            reading?.air_temperature != null
-              ? `${reading.air_temperature} °C`
-              : "—"
+            weather?.temperature_c != null
+              ? `${weather.temperature_c.toFixed(0)} °C`
+              : reading?.air_temperature != null
+                ? `${reading.air_temperature} °C`
+                : "—"
+          }
+          hint={
+            weather?.precip_probability_pct != null
+              ? `Yağış ihtimali %${weather.precip_probability_pct.toFixed(0)} · Open-Meteo`
+              : "Open-Meteo veya okuma"
           }
         />
         <KpiCard
           label="Hava nemi"
           value={
-            reading?.air_humidity != null ? `%${reading.air_humidity}` : "—"
+            weather?.humidity_pct != null
+              ? `%${weather.humidity_pct.toFixed(0)}`
+              : reading?.air_humidity != null
+                ? `%${reading.air_humidity}`
+                : "—"
           }
         />
         <KpiCard

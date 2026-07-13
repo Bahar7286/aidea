@@ -3,7 +3,7 @@ type Zone = { name: string; moisture?: number | null; tone?: "ok" | "warn" | "ri
 /** areaDa: Turkish dekar (1 ha ≈ 10 da). Scales schematic plot footprint. */
 export function SchematicMap({
   zones,
-  label = "Sınırlı dijital ikiz",
+  label = "Arazi şeması",
   areaDa,
 }: {
   zones: Zone[];

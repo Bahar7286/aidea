@@ -60,7 +60,7 @@ export function AuthSplitLayout({
         </div>
 
         <p className="relative z-10 text-xs text-white/65">
-          Toprak nemi ve sulama karar desteği — sınırlı dijital ikiz prototipi
+          Toprak nemi ve sulama karar desteği
         </p>
       </aside>
 

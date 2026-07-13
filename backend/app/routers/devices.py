@@ -1,6 +1,4 @@
-import json
 from datetime import datetime, timedelta
-from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
@@ -27,7 +25,6 @@ from app.validation import compute_data_confidence
 
 router = APIRouter(tags=["devices-iot"])
 
-DATASETS_DIR = Path(__file__).resolve().parents[3] / "ai" / "datasets"
 CALIBRATION_DUE_DAYS = 90
 
 
@@ -335,16 +332,13 @@ def iot_simulate(
     current_user: User = Depends(get_current_user),
 ):
     farm = get_owned_farm(db, payload.farm_id, current_user, require_active=True)
-    path = DATASETS_DIR / f"{payload.scenario}.json"
-    if not path.exists():
-        available = sorted(p.stem for p in DATASETS_DIR.glob("*.json"))
-        raise HTTPException(
-            status_code=400,
-            detail=f"Senaryo bulunamadı: {payload.scenario}. Mevcut: {', '.join(available)}",
-        )
+    from app.datasets_path import list_scenario_metas, load_scenario
 
-    with path.open(encoding="utf-8") as f:
-        scenario = json.load(f)
+    try:
+        scenario = load_scenario(payload.scenario)
+    except FileNotFoundError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    _ = list_scenario_metas  # kept for parity / debugging imports
     reading_data = scenario.get("reading") or {}
     if "soil_moisture" not in reading_data:
         raise HTTPException(status_code=400, detail="Senaryo okuma verisi eksik.")

@@ -10,6 +10,8 @@ class Settings(BaseSettings):
     # Optional: hybrid AI explanations via OpenRouter (rules stay safety floor)
     openrouter_api_key: str = ""
     openrouter_model: str = "openai/gpt-4o-mini"
+    # Upsert demo users on startup: "1" force on, "0" force off; empty = auto on Postgres
+    seed_demo_users: str = ""
 
     class Config:
         env_file = ".env"
