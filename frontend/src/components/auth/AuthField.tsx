@@ -50,19 +50,21 @@ export function AuthField({ label, icon, type = "text", className = "", ...rest 
       </label>
       <div className="relative">
         {icon && (
-          <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2">
+          <span className="pointer-events-none absolute left-3.5 top-1/2 z-[1] -translate-y-1/2">
             <FieldIcon name={icon} />
           </span>
         )}
         <input
           {...rest}
           type={isPassword && show ? "text" : type}
-          className={`input auth-input ${icon ? "pl-10" : ""} ${isPassword ? "pr-12" : ""} ${className}`}
+          className={`input auth-input ${icon ? "auth-input--icon" : ""} ${
+            isPassword ? "auth-input--password" : ""
+          } ${className}`}
         />
         {isPassword && (
           <button
             type="button"
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-medium text-[var(--auth-muted)]"
+            className="absolute right-3 top-1/2 z-[1] -translate-y-1/2 text-xs font-medium text-[var(--auth-muted)]"
             onClick={() => setShow((v) => !v)}
             aria-label={show ? "Şifreyi gizle" : "Şifreyi göster"}
           >

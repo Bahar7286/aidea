@@ -102,9 +102,74 @@ body {
   border-color: var(--auth-border);
 }
 
+/* Beat `.input` shorthand padding so icons don't overlap typed text */
+.auth-input.auth-input--icon {
+  padding-left: 2.75rem;
+}
+
+.auth-input.auth-input--password {
+  padding-right: 3.25rem;
+}
+
 .auth-input:focus {
   outline: 2px solid color-mix(in srgb, var(--auth-forest) 35%, white);
   border-color: var(--auth-forest-2);
+}
+
+@keyframes auth-parcel-breathe {
+  0%,
+  100% {
+    opacity: 0.88;
+    transform: translateY(0);
+  }
+  50% {
+    opacity: 1;
+    transform: translateY(-1.5px);
+  }
+}
+
+@keyframes auth-node-pulse {
+  0%,
+  100% {
+    opacity: 0.55;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.25);
+  }
+}
+
+.auth-parcel {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: auth-parcel-breathe 5.5s ease-in-out infinite;
+}
+
+.auth-parcel-b {
+  animation-delay: 0.7s;
+}
+
+.auth-parcel-c {
+  animation-delay: 1.4s;
+}
+
+.auth-parcel-d {
+  animation-delay: 0.35s;
+}
+
+.auth-parcel-e {
+  animation-delay: 1.1s;
+}
+
+.auth-node {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: auth-node-pulse 2.8s ease-in-out infinite;
+}
+
+.auth-node-delay {
+  animation-delay: 1.2s;
 }
 
 .label {

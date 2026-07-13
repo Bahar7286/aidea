@@ -7,43 +7,69 @@ import { AuthSplitLayout } from "@/components/auth/AuthSplitLayout";
 import { AuthField } from "@/components/auth/AuthField";
 import { api, setSession } from "@/lib/api";
 
+const DEMO_PASSWORD = "Secret12";
+
+const DEMO_ACCOUNTS = [
+  { email: "admin@agritwin.demo", label: "Admin", hint: "Yönetim" },
+  { email: "ciftci@agritwin.demo", label: "Çiftçi", hint: "Ana demo" },
+  { email: "ziraat@agritwin.demo", label: "Ziraat", hint: "Danışman" },
+  { email: "kooperatif@agritwin.demo", label: "Kooperatif", hint: "Koop" },
+] as const;
+
 export default function LoginPage() {
   const router = useRouter();
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [remembered, setRemembered] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
 
   useEffect(() => {
-    setRemembered(localStorage.getItem("agritwin_remember") || "");
+    const saved = localStorage.getItem("agritwin_remember") || "";
+    setRemembered(saved);
+    if (saved) setEmail(saved);
   }, []);
 
-  async function onSubmit(e: FormEvent<HTMLFormElement>) {
-    e.preventDefault();
+  async function loginWith(creds: { email: string; password: string }, remember = false) {
     setError("");
     setLoading(true);
-    const form = new FormData(e.currentTarget);
-    const email = String(form.get("email"));
     try {
-      const data = await api.login({
-        email,
-        password: String(form.get("password")),
-      });
+      const data = await api.login(creds);
       setSession(data.access_token, data.user);
-      if (form.get("remember") === "on") {
-        localStorage.setItem("agritwin_remember", email);
+      if (remember) {
+        localStorage.setItem("agritwin_remember", creds.email);
       } else {
         localStorage.removeItem("agritwin_remember");
       }
       router.push("/dashboard");
+      router.refresh();
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Giriş başarısız.";
       setError(msg);
       if (msg.includes("doğrulanmamış")) {
-        router.push(`/register/verify?email=${encodeURIComponent(email)}`);
+        router.push(`/register/verify?email=${encodeURIComponent(creds.email)}`);
       }
     } finally {
       setLoading(false);
     }
+  }
+
+  async function onSubmit(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const form = new FormData(e.currentTarget);
+    await loginWith(
+      {
+        email: String(form.get("email")),
+        password: String(form.get("password")),
+      },
+      form.get("remember") === "on",
+    );
+  }
+
+  async function demoLogin(demoEmail: string) {
+    setEmail(demoEmail);
+    setPassword(DEMO_PASSWORD);
+    await loginWith({ email: demoEmail, password: DEMO_PASSWORD }, false);
   }
 
   return (
@@ -62,14 +88,19 @@ export default function LoginPage() {
           </p>
         </div>
 
-        <form className="space-y-4" onSubmit={onSubmit} key={remembered || "empty"}>
+        <form
+          className="space-y-4"
+          onSubmit={onSubmit}
+          key={remembered || "empty"}
+        >
           <AuthField
             id="email"
             name="email"
             label="E-posta veya Telefon"
             icon="user"
             placeholder="ornek@email.com veya 5XXXXXXXXX"
-            defaultValue={remembered}
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
             required
             autoComplete="username"
           />
@@ -79,6 +110,8 @@ export default function LoginPage() {
             label="Şifre"
             icon="lock"
             type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
             required
             autoComplete="current-password"
           />
@@ -111,6 +144,30 @@ export default function LoginPage() {
             {loading ? "Giriş yapılıyor..." : "Giriş Yap →"}
           </button>
         </form>
+
+        <div className="space-y-2">
+          <p className="text-xs font-semibold uppercase tracking-wide text-[var(--auth-muted)]">
+            Demo hesaplar · {DEMO_PASSWORD}
+          </p>
+          <div className="grid grid-cols-2 gap-2">
+            {DEMO_ACCOUNTS.map((acc) => (
+              <button
+                key={acc.email}
+                type="button"
+                disabled={loading}
+                onClick={() => demoLogin(acc.email)}
+                className="rounded-xl border border-[var(--auth-border)] bg-white px-3 py-2.5 text-left transition hover:border-[var(--auth-forest)] hover:bg-emerald-50/80 disabled:opacity-55"
+              >
+                <span className="block text-sm font-semibold text-[var(--auth-ink)]">
+                  {acc.label}
+                </span>
+                <span className="mt-0.5 block truncate text-[10px] text-[var(--auth-muted)]">
+                  {acc.hint} · {acc.email}
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
 
         <div className="relative text-center text-xs text-[var(--auth-muted)]">
           <span className="relative z-10 bg-[var(--auth-bg)] px-2">veya</span>

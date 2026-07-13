@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { AppShell } from "@/components/app/AppShell";
 import { CropTypeField } from "@/components/app/CropTypeField";
+import { setSelectedFarmId } from "@/components/app/FarmSelector";
 import { api } from "@/lib/api";
 import { SchematicMap } from "@/components/app/SchematicMap";
 import { Radio } from "lucide-react";
@@ -54,6 +55,7 @@ export default function NewFarmPage() {
       for (let i = 0; i < n; i++) {
         await api.createZone({ farm_id: farm.id, name: names[i] || `Bölge ${i + 1}` }).catch(() => undefined);
       }
+      setSelectedFarmId(farm.id);
       router.push(`/farms/${farm.id}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Arazi oluşturulamadı.");

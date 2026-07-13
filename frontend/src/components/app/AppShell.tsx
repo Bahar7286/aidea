@@ -18,8 +18,11 @@ import {
   Settings2,
   Sprout,
 } from "lucide-react";
-import { getSelectedFarmId } from "@/components/app/FarmSelector";
-import { clearSession, getStoredUser, User } from "@/lib/api";
+import {
+  getSelectedFarmId,
+  setSelectedFarmId,
+} from "@/components/app/FarmSelector";
+import { api, clearSession, getStoredUser, User } from "@/lib/api";
 
 type Props = {
   children: ReactNode;
@@ -35,6 +38,13 @@ type NavItem = {
   icon: typeof LayoutDashboard;
 };
 
+function farmIdFromPath(pathname: string): number | null {
+  const m = pathname.match(/^\/farms\/(\d+)(?:\/|$)/);
+  if (!m) return null;
+  const n = Number(m[1]);
+  return Number.isFinite(n) && n > 0 ? n : null;
+}
+
 export function AppShell({ children, title, farmName }: Props) {
   const pathname = usePathname();
   const router = useRouter();
@@ -48,7 +58,34 @@ export function AppShell({ children, title, farmName }: Props) {
       return;
     }
     setUser(stored);
-    setFarmId(getSelectedFarmId());
+
+    const fromPath = farmIdFromPath(pathname);
+    if (fromPath) {
+      setSelectedFarmId(fromPath);
+      setFarmId(fromPath);
+      return;
+    }
+
+    const saved = getSelectedFarmId();
+    if (saved) {
+      setFarmId(saved);
+      return;
+    }
+
+    let cancelled = false;
+    api
+      .listFarms()
+      .then((rows) => {
+        if (cancelled || !rows[0]) return;
+        setSelectedFarmId(rows[0].id);
+        setFarmId(rows[0].id);
+      })
+      .catch(() => {
+        /* nav falls back to /farms */
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [router, pathname]);
 
   function logout() {
@@ -201,6 +238,7 @@ export function AppShell({ children, title, farmName }: Props) {
               <Link
                 key={item.label}
                 href={href}
+                prefetch
                 className={`flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-medium transition ${
                   item.active
                     ? "bg-[var(--auth-forest)] text-white shadow-sm"
@@ -273,6 +311,7 @@ export function AppShell({ children, title, farmName }: Props) {
                 <li key={item.label}>
                   <Link
                     href={item.href}
+                    prefetch
                     className={`flex flex-col items-center gap-0.5 px-1 py-2 text-[10px] font-medium ${
                       item.active
                         ? "text-[var(--auth-forest)]"

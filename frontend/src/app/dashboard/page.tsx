@@ -3,6 +3,10 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { AppShell } from "@/components/app/AppShell";
+import {
+  getSelectedFarmId,
+  setSelectedFarmId,
+} from "@/components/app/FarmSelector";
 import { KpiCard } from "@/components/app/KpiCard";
 import { MoistureSparkline } from "@/components/app/MoistureSparkline";
 import { SchematicMap } from "@/components/app/SchematicMap";
@@ -26,7 +30,14 @@ export default function DashboardPage() {
       .listFarms()
       .then((rows) => {
         setFarms(rows);
-        if (rows[0]) setSelectedId(rows[0].id);
+        const preferred =
+          getSelectedFarmId() ||
+          rows.find((f) => f.is_active !== false)?.id ||
+          rows[0]?.id;
+        if (preferred) {
+          setSelectedId(preferred);
+          setSelectedFarmId(preferred);
+        }
       })
       .catch((err) => setError(err.message));
   }, []);
@@ -36,6 +47,7 @@ export default function DashboardPage() {
       setOverview(null);
       return;
     }
+    setSelectedFarmId(selectedId);
     api
       .farmOverview(selectedId)
       .then(setOverview)
@@ -68,7 +80,11 @@ export default function DashboardPage() {
         <select
           className="input max-w-xs"
           value={selectedId ?? ""}
-          onChange={(e) => setSelectedId(Number(e.target.value) || null)}
+          onChange={(e) => {
+            const id = Number(e.target.value) || null;
+            setSelectedId(id);
+            if (id) setSelectedFarmId(id);
+          }}
         >
           {farms.length === 0 && <option value="">Arazi yok</option>}
           {farms.map((f) => (

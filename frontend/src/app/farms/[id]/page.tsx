@@ -4,6 +4,7 @@ import { FormEvent, useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { AppShell } from "@/components/app/AppShell";
+import { setSelectedFarmId } from "@/components/app/FarmSelector";
 import {
   AnomalyReport,
   api,
@@ -73,6 +74,7 @@ export default function FarmDetailPage() {
 
   useEffect(() => {
     if (!farmId) return;
+    setSelectedFarmId(farmId);
     api
       .getFarm(farmId)
       .then(setFarm)

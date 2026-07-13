@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { AppShell } from "@/components/app/AppShell";
+import { setSelectedFarmId } from "@/components/app/FarmSelector";
 import { api, Farm } from "@/lib/api";
 
 export default function FarmsPage() {
@@ -14,7 +15,12 @@ export default function FarmsPage() {
   useEffect(() => {
     api
       .listFarms(true)
-      .then(setFarms)
+      .then((rows) => {
+        setFarms(rows);
+        const preferred =
+          rows.find((f) => f.is_active !== false)?.id || rows[0]?.id;
+        if (preferred) setSelectedFarmId(preferred);
+      })
       .catch((err) => setError(err.message));
   }, []);
 
@@ -76,6 +82,7 @@ export default function FarmsPage() {
               <div>
                 <Link
                   href={`/farms/${f.id}`}
+                  onClick={() => setSelectedFarmId(f.id)}
                   className="font-semibold text-[var(--auth-ink)]"
                 >
                   {f.name}
@@ -96,11 +103,16 @@ export default function FarmsPage() {
               </span>
             </div>
             <div className="mt-3 flex gap-2">
-              <Link href={`/farms/${f.id}`} className="btn btn-secondary flex-1 text-xs">
+              <Link
+                href={`/farms/${f.id}`}
+                onClick={() => setSelectedFarmId(f.id)}
+                className="btn btn-secondary flex-1 text-xs"
+              >
                 Görüntüle
               </Link>
               <Link
                 href={`/farms/${f.id}/edit`}
+                onClick={() => setSelectedFarmId(f.id)}
                 className="btn btn-ghost text-xs"
               >
                 Düzenle
@@ -132,7 +144,11 @@ export default function FarmsPage() {
             {filtered.map((f) => (
               <tr key={f.id} className="border-b border-[var(--auth-border)]">
                 <td className="px-4 py-3 font-semibold">
-                  <Link href={`/farms/${f.id}`} className="hover:underline">
+                  <Link
+                    href={`/farms/${f.id}`}
+                    onClick={() => setSelectedFarmId(f.id)}
+                    className="hover:underline"
+                  >
                     {f.name}
                   </Link>
                 </td>
@@ -158,12 +174,14 @@ export default function FarmsPage() {
                   <div className="flex gap-2">
                     <Link
                       href={`/farms/${f.id}`}
+                      onClick={() => setSelectedFarmId(f.id)}
                       className="text-[var(--auth-forest)] hover:underline"
                     >
                       Gör
                     </Link>
                     <Link
                       href={`/farms/${f.id}/edit`}
+                      onClick={() => setSelectedFarmId(f.id)}
                       className="text-[var(--auth-muted)] hover:underline"
                     >
                       Düzenle

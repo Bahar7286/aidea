@@ -6,6 +6,7 @@ import { useParams, useRouter } from "next/navigation";
 import { AppShell } from "@/components/app/AppShell";
 import { CropTypeField } from "@/components/app/CropTypeField";
 import { SchematicMap } from "@/components/app/SchematicMap";
+import { setSelectedFarmId } from "@/components/app/FarmSelector";
 import { api, Farm } from "@/lib/api";
 
 export default function EditFarmPage() {
@@ -20,6 +21,7 @@ export default function EditFarmPage() {
 
   useEffect(() => {
     if (!farmId) return;
+    setSelectedFarmId(farmId);
     api
       .getFarm(farmId)
       .then((f) => {
