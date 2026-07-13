@@ -99,6 +99,53 @@ class Farm(Base):
     devices = relationship("Device", back_populates="farm", cascade="all, delete-orphan")
     zones = relationship("ManagementZone", back_populates="farm", cascade="all, delete-orphan")
     lab_reports = relationship("LabReport", back_populates="farm", cascade="all, delete-orphan")
+    material_uses = relationship(
+        "FarmMaterialUse", back_populates="farm", cascade="all, delete-orphan"
+    )
+
+
+class AgroMaterial(Base):
+    """Reference catalog of fertilizer / plant-protection *classes* (not brand Rx)."""
+
+    __tablename__ = "agro_materials"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    code: Mapped[str] = mapped_column(String(40), unique=True, nullable=False, index=True)
+    kind: Mapped[str] = mapped_column(String(40), nullable=False, index=True)
+    name_tr: Mapped[str] = mapped_column(String(160), nullable=False)
+    name_en: Mapped[str | None] = mapped_column(String(160), nullable=True)
+    category: Mapped[str] = mapped_column(String(80), nullable=False)
+    nutrient_focus: Mapped[str | None] = mapped_column(String(80), nullable=True)
+    purpose: Mapped[str] = mapped_column(Text, nullable=False)
+    ec_salinity_note: Mapped[str | None] = mapped_column(Text, nullable=True)
+    phi_class_note: Mapped[str | None] = mapped_column(Text, nullable=True)
+    irrigation_context: Mapped[str | None] = mapped_column(Text, nullable=True)
+    sort_order: Mapped[int] = mapped_column(Integer, default=100)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+
+    farm_uses = relationship("FarmMaterialUse", back_populates="material")
+
+
+class FarmMaterialUse(Base):
+    """User association: materials used on this farm (profile, not prescription)."""
+
+    __tablename__ = "farm_material_uses"
+    __table_args__ = (
+        UniqueConstraint("farm_id", "material_id", name="uq_farm_material"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    farm_id: Mapped[int] = mapped_column(ForeignKey("farms.id"), nullable=False, index=True)
+    material_id: Mapped[int] = mapped_column(
+        ForeignKey("agro_materials.id"), nullable=False, index=True
+    )
+    notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    frequency: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    last_applied_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+    farm = relationship("Farm", back_populates="material_uses")
+    material = relationship("AgroMaterial", back_populates="farm_uses")
 
 
 class ManagementZone(Base):

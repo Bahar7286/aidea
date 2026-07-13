@@ -16,6 +16,9 @@ class RuleInput:
     growth_stage: str | None = None
     data_confidence: float | None = 100.0
     data_age_hours: float | None = 0.0
+    materials_summary: str | None = None
+    material_notes: list[str] | None = None
+    ec: float | None = None
 
 
 @dataclass
@@ -113,6 +116,8 @@ def predict_irrigation(inp: RuleInput) -> RuleResult:
         duration = duration or 12.0
         reasons.append("48 saat içinde nem kritik eşiğe düşebilir")
 
+    if inp.material_notes:
+        reasons.extend(inp.material_notes[:2])
     explanation = ". ".join(reasons) + "."
     if irrigation_needed:
         explanation = f"Sulama öneriliyor. {explanation}"

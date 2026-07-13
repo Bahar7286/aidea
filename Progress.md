@@ -72,6 +72,7 @@ MVP şu probleme odaklanmaktadır:
 - Sulama geçmişi
 - Tahmini su kullanımı ve tasarruf
 - Laboratuvar analizi (P1 — rapor/manuel, birimli; gübre reçetesi yok)
+- Arazi gübre/ilaç **sınıf** kataloğu + farm association (yorum bağlamı; reçete yok)
 
 ### MVP dışı
 
@@ -688,4 +689,13 @@ MVP şu probleme odaklanmaktadır:
 AgriTwin AI yerel MVP dilimi çalışır durumda: kayıt, arazi, veri, AI önerisi, senaryo karşılaştırması, onaylı sanal sulama ve anomali uyarıları.
 
 Kalan boşluklar: canlı URL (deploy hesabı), ML modeli, sunum provası. Recharts 72s grafik, su tasarrufu KPI/rapor, profil ayarları, IoT–lab çelişki uyarısı ve sulama geri sayımı tamam. `TEST_PLAN.md` as-built test planı hazır; backend pytest yeşil.
+
+### 2026-07-14 — Agro malzeme kataloğu
+
+- [x] `AgroMaterial` + `FarmMaterialUse` modelleri + seed katalog
+- [x] API: `/agro-materials`, `/farms/{id}/materials`
+- [x] Arazi oluştur/düzenle UI (açılır çoklu seçim)
+- [x] AI `enrich_explanation` + öneri insight malzemeleri kullanır (doz reçetesi yok)
+- [x] `FERTILIZER_PESTICIDE_CATALOG.md` kaynak özeti
+- [x] Testler: `test_agro_materials.py`
 

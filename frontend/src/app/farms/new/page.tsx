@@ -5,12 +5,16 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { AppShell } from "@/components/app/AppShell";
 import { CropTypeField } from "@/components/app/CropTypeField";
+import {
+  FarmMaterialsField,
+  MaterialSelection,
+} from "@/components/app/FarmMaterialsField";
 import { setSelectedFarmId } from "@/components/app/FarmSelector";
 import { api } from "@/lib/api";
 import { SchematicMap } from "@/components/app/SchematicMap";
 import { Radio } from "lucide-react";
 
-const STEPS = ["Temel Bilgi", "Konum", "Bölge", "Özet"];
+const STEPS = ["Temel Bilgi", "Konum", "Bölge / Malzeme", "Özet"];
 
 export default function NewFarmPage() {
   const router = useRouter();
@@ -27,6 +31,7 @@ export default function NewFarmPage() {
     growth_stage: "çiçeklenme",
     zone_hint: "3",
   });
+  const [materials, setMaterials] = useState<MaterialSelection[]>([]);
 
   function update(key: string, value: string) {
     setForm((f) => ({ ...f, [key]: value }));
@@ -49,6 +54,13 @@ export default function NewFarmPage() {
         irrigation_type: form.irrigation_type || null,
         crop_type: form.crop_type || null,
         growth_stage: form.growth_stage || null,
+        materials: materials.length
+          ? materials.map((m) => ({
+              material_id: m.material_id,
+              notes: m.notes || null,
+              frequency: m.frequency || null,
+            }))
+          : undefined,
       });
       const n = Math.min(5, Math.max(0, Number(form.zone_hint) || 0));
       const names = ["Kuzey", "Orta", "Güney", "Doğu", "Batı"];
@@ -194,10 +206,10 @@ export default function NewFarmPage() {
 
           {step === 2 && (
             <>
-              <h2 className="font-semibold">Bölge ayarı</h2>
+              <h2 className="font-semibold">Bölge ve malzeme profili</h2>
               <p className="text-sm text-[var(--auth-muted)]">
                 Tek sensör tüm araziyi temsil etmez. İsterseniz başlangıç bölgeleri
-                oluşturun.
+                oluşturun. Gübre/ilaç seçimi isteğe bağlıdır — reçete değil, bağlamdır.
               </p>
               <div>
                 <label className="label" htmlFor="zone_hint">
@@ -215,6 +227,7 @@ export default function NewFarmPage() {
                   <option value="3">3</option>
                 </select>
               </div>
+              <FarmMaterialsField value={materials} onChange={setMaterials} />
             </>
           )}
 
@@ -232,6 +245,7 @@ export default function NewFarmPage() {
                   {form.location || "Konum yok"} · {form.area || "—"} da
                 </li>
                 <li>Başlangıç bölge: {form.zone_hint}</li>
+                <li>Malzeme sınıfı: {materials.length || "seçilmedi"}</li>
               </ul>
             </>
           )}

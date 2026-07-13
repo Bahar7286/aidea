@@ -131,6 +131,30 @@ export type MessageOut = {
   email?: string | null;
 };
 
+export type AgroMaterial = {
+  id: number;
+  code: string;
+  kind: string;
+  name_tr: string;
+  name_en: string | null;
+  category: string;
+  nutrient_focus: string | null;
+  purpose: string;
+  ec_salinity_note: string | null;
+  phi_class_note: string | null;
+  irrigation_context: string | null;
+  sort_order: number;
+};
+
+export type FarmMaterialUse = {
+  id: number;
+  material_id: number;
+  notes: string | null;
+  frequency: string | null;
+  last_applied_at: string | null;
+  material?: AgroMaterial | null;
+};
+
 export type Farm = {
   id: number;
   name: string;
@@ -150,6 +174,7 @@ export type Farm = {
     growth_stage: string | null;
     planting_date: string | null;
   }>;
+  material_uses?: FarmMaterialUse[];
 };
 
 export type WeatherSnapshot = {
@@ -668,6 +693,25 @@ export const api = {
     ),
   createFarm: (body: Record<string, unknown>) =>
     request<Farm>("/farms", { method: "POST", body: JSON.stringify(body) }),
+  listAgroMaterials: (kind?: string) =>
+    request<AgroMaterial[]>(
+      kind ? `/agro-materials?kind=${encodeURIComponent(kind)}` : "/agro-materials"
+    ),
+  listFarmMaterials: (farmId: number) =>
+    request<FarmMaterialUse[]>(`/farms/${farmId}/materials`),
+  syncFarmMaterials: (
+    farmId: number,
+    items: Array<{
+      material_id: number;
+      notes?: string | null;
+      frequency?: string | null;
+      last_applied_at?: string | null;
+    }>
+  ) =>
+    request<FarmMaterialUse[]>(`/farms/${farmId}/materials`, {
+      method: "PUT",
+      body: JSON.stringify({ items }),
+    }),
   getFarm: (id: number) => request<Farm>(`/farms/${id}`),
   updateFarm: (id: number, body: Record<string, unknown>) =>
     request<Farm>(`/farms/${id}`, {

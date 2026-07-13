@@ -6,6 +6,8 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from app.anomaly_service import collect_farm_anomalies
+from app.agro_catalog import commentary_from_materials, format_materials_summary
+from app.materials_service import load_farm_uses
 from app.auth import get_current_user
 from app.database import get_db
 from app.deps import get_owned_farm
@@ -241,6 +243,32 @@ def _build_insight_items(
                     automation_allowed=False,
                 )
             )
+
+
+    # --- Farm materials profile (context only; no fertilizer Rx) ---
+    uses = load_farm_uses(db, farm_id)
+    if uses:
+        summary = format_materials_summary(uses) or ""
+        notes = commentary_from_materials(
+            uses, ec=reading.ec if reading else None
+        )
+        note_txt = notes[0] if notes else (
+            "Kayıtlı gübre/ilaç sınıfları sulama ve EC yorumuna bağlam sağlar; doz reçetesi üretilmez."
+        )
+        items.append(
+            RecommendationItemOut(
+                id="insight-farm-materials",
+                category="other",
+                title="Arazi gübre / ilaç profili",
+                summary=(
+                    f"{note_txt} "
+                    f"Seçimler: {summary[:220]}{'…' if len(summary) > 220 else ''}"
+                ),
+                priority="low",
+                created_at=base_ts,
+                automation_allowed=False,
+            )
+        )
 
     # --- Water savings insight ---
     events = db.query(IrrigationEvent).filter(IrrigationEvent.farm_id == farm_id).all()

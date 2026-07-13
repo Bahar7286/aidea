@@ -5,6 +5,7 @@ from app.anomaly_service import collect_farm_anomalies
 from app.auth import get_current_user
 from app.database import get_db
 from app.deps import get_owned_farm
+from app.materials_service import load_farm_uses, sync_farm_materials
 from app.models import (
     Crop,
     Device,
@@ -35,12 +36,14 @@ router = APIRouter(prefix="/farms", tags=["farms"])
 
 
 def _farm_out(db: Session, farm: Farm) -> FarmOut:
+    uses = load_farm_uses(db, farm.id)
     return FarmOut.model_validate(farm).model_copy(
         update={
             "zone_count": db.query(ManagementZone)
             .filter(ManagementZone.farm_id == farm.id)
             .count(),
             "device_count": db.query(Device).filter(Device.farm_id == farm.id).count(),
+            "material_uses": uses,
         }
     )
 
@@ -72,6 +75,10 @@ def create_farm(
                 growth_stage=payload.growth_stage,
             )
         )
+    if payload.materials is not None:
+        sync_farm_materials(db, farm.id, items=payload.materials)
+    elif payload.material_ids is not None:
+        sync_farm_materials(db, farm.id, material_ids=payload.material_ids)
     db.commit()
     db.refresh(farm)
     return _farm_out(db, farm)
@@ -318,6 +325,8 @@ def update_farm(
     data = payload.model_dump(exclude_unset=True)
     crop_type = data.pop("crop_type", None)
     growth_stage = data.pop("growth_stage", None)
+    materials = data.pop("materials", None)
+    material_ids = data.pop("material_ids", None)
     for key, value in data.items():
         setattr(farm, key, value)
     if crop_type is not None or growth_stage is not None:
@@ -339,6 +348,10 @@ def update_farm(
                     growth_stage=growth_stage,
                 )
             )
+    if materials is not None:
+        sync_farm_materials(db, farm.id, items=materials)
+    elif material_ids is not None:
+        sync_farm_materials(db, farm.id, material_ids=material_ids)
     db.commit()
     db.refresh(farm)
     return _farm_out(db, farm)

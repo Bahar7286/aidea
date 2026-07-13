@@ -70,3 +70,19 @@ def maybe_seed_on_startup() -> None:
         seed_demo_users()
     except Exception:
         logger.exception("Startup demo seed skipped after error")
+
+
+def ensure_catalog_on_startup() -> None:
+    """Always seed educational agro reference catalog (idempotent)."""
+    from app.agro_catalog import ensure_agro_catalog
+
+    session = SessionLocal()
+    try:
+        n = ensure_agro_catalog(session)
+        session.commit()
+        logger.info("Agro catalog ensured (%s entries)", n)
+    except Exception:
+        session.rollback()
+        logger.exception("Agro catalog seed failed")
+    finally:
+        session.close()

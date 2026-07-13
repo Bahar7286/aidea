@@ -8,6 +8,7 @@ from app.auth import get_current_user
 from app.database import get_db
 from app.deps import get_owned_farm
 from app.llm_explain import enrich_explanation
+from app.materials_service import rule_material_context
 from app.models import (
     IrrigationEvent,
     IrrigationStatus,
@@ -57,6 +58,7 @@ def _latest_reading(db: Session, farm_id: int) -> SensorReading | None:
 def _run_prediction(db: Session, farm, reading: SensorReading) -> Prediction:
     age_hours = (datetime.utcnow() - reading.timestamp).total_seconds() / 3600
     crop = farm.crops[0] if farm.crops else None
+    mat_summary, mat_notes = rule_material_context(db, farm.id, ec=reading.ec)
     rule_inp = RuleInput(
         soil_moisture=reading.soil_moisture,
         air_temperature=reading.air_temperature,
@@ -67,6 +69,9 @@ def _run_prediction(db: Session, farm, reading: SensorReading) -> Prediction:
         growth_stage=crop.growth_stage if crop else None,
         data_confidence=reading.data_confidence,
         data_age_hours=age_hours,
+        materials_summary=mat_summary,
+        material_notes=mat_notes,
+        ec=reading.ec,
     )
     result = enrich_explanation(rule_inp, predict_irrigation(rule_inp))
     prediction = Prediction(

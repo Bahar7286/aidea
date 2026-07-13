@@ -5,6 +5,10 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { AppShell } from "@/components/app/AppShell";
 import { CropTypeField } from "@/components/app/CropTypeField";
+import {
+  FarmMaterialsField,
+  MaterialSelection,
+} from "@/components/app/FarmMaterialsField";
 import { SchematicMap } from "@/components/app/SchematicMap";
 import { setSelectedFarmId } from "@/components/app/FarmSelector";
 import { api, Farm } from "@/lib/api";
@@ -16,6 +20,7 @@ export default function EditFarmPage() {
   const [farm, setFarm] = useState<Farm | null>(null);
   const [cropType, setCropType] = useState("domates");
   const [area, setArea] = useState("");
+  const [materials, setMaterials] = useState<MaterialSelection[]>([]);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -28,6 +33,13 @@ export default function EditFarmPage() {
         setFarm(f);
         setCropType(f.crops[0]?.crop_type || "domates");
         setArea(f.area != null ? String(f.area) : "");
+        setMaterials(
+          (f.material_uses || []).map((u) => ({
+            material_id: u.material_id,
+            notes: u.notes,
+            frequency: u.frequency,
+          }))
+        );
       })
       .catch((err) => setError(err.message));
   }, [farmId]);
@@ -48,6 +60,11 @@ export default function EditFarmPage() {
         is_active: form.get("is_active") === "on",
         crop_type: cropType || null,
         growth_stage: String(form.get("growth_stage") || "") || null,
+        materials: materials.map((m) => ({
+          material_id: m.material_id,
+          notes: m.notes || null,
+          frequency: m.frequency || null,
+        })),
       });
       setFarm(updated);
       router.push(`/farms/${farmId}`);
@@ -172,6 +189,9 @@ export default function EditFarmPage() {
                 name="growth_stage"
                 defaultValue={farm.crops[0]?.growth_stage || ""}
               />
+            </div>
+            <div className="sm:col-span-2">
+              <FarmMaterialsField value={materials} onChange={setMaterials} />
             </div>
           </div>
 

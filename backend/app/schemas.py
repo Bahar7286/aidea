@@ -88,6 +88,50 @@ class MessageOut(BaseModel):
     email: EmailStr | None = None
 
 
+class AgroMaterialOut(BaseModel):
+    id: int
+    code: str
+    kind: str
+    name_tr: str
+    name_en: str | None = None
+    category: str
+    nutrient_focus: str | None = None
+    purpose: str
+    ec_salinity_note: str | None = None
+    phi_class_note: str | None = None
+    irrigation_context: str | None = None
+    sort_order: int = 100
+
+    class Config:
+        from_attributes = True
+
+
+class FarmMaterialUseIn(BaseModel):
+    material_id: int
+    notes: str | None = Field(default=None, max_length=500)
+    frequency: str | None = Field(
+        default=None,
+        description="occasional|weekly|biweekly|monthly|seasonal|as_needed",
+    )
+    last_applied_at: datetime | None = None
+
+
+class FarmMaterialUseOut(BaseModel):
+    id: int
+    material_id: int
+    notes: str | None = None
+    frequency: str | None = None
+    last_applied_at: datetime | None = None
+    material: AgroMaterialOut | None = None
+
+    class Config:
+        from_attributes = True
+
+
+class FarmMaterialsSync(BaseModel):
+    items: list[FarmMaterialUseIn] = []
+
+
 class FarmCreate(BaseModel):
     name: str = Field(min_length=1, max_length=120)
     location: str | None = None
@@ -98,6 +142,8 @@ class FarmCreate(BaseModel):
     irrigation_type: str | None = None
     crop_type: str | None = Field(default=None, max_length=80)
     growth_stage: str | None = None
+    material_ids: list[int] | None = None
+    materials: list[FarmMaterialUseIn] | None = None
 
 
 class FarmUpdate(BaseModel):
@@ -111,6 +157,9 @@ class FarmUpdate(BaseModel):
     is_active: bool | None = None
     crop_type: str | None = Field(default=None, max_length=80)
     growth_stage: str | None = None
+    material_ids: list[int] | None = None
+    materials: list[FarmMaterialUseIn] | None = None
+
 
 
 class CropOut(BaseModel):
@@ -135,6 +184,7 @@ class FarmOut(BaseModel):
     is_active: bool = True
     created_at: datetime
     crops: list[CropOut] = []
+    material_uses: list[FarmMaterialUseOut] = []
     zone_count: int = 0
     device_count: int = 0
 

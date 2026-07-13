@@ -15,8 +15,11 @@ sys.path.insert(0, str(ROOT))
 
 from app.auth import hash_password
 from app.database import Base, SessionLocal, engine
+from app.agro_catalog import ensure_agro_catalog
 from app.db_migrate import ensure_sqlite_columns
+from app.materials_service import sync_farm_materials
 from app.models import (
+    AgroMaterial,
     Crop,
     Device,
     Farm,
@@ -226,6 +229,18 @@ def seed_farmer_farm(db, owner: User) -> Farm:
             )
         )
 
+    ensure_agro_catalog(db)
+    from app.models import FarmMaterialUse
+
+    if db.query(FarmMaterialUse).filter(FarmMaterialUse.farm_id == farm.id).count() == 0:
+        codes = ["fert_map", "fert_kno3", "fert_can", "pp_fungicide", "pp_insecticide"]
+        ids = [
+            m.id
+            for m in db.query(AgroMaterial).filter(AgroMaterial.code.in_(codes)).all()
+        ]
+        if ids:
+            sync_farm_materials(db, farm.id, material_ids=ids)
+
     return farm
 
 
@@ -298,6 +313,8 @@ def main() -> None:
     Base.metadata.create_all(bind=engine)
     ensure_sqlite_columns()
     db = SessionLocal()
+    ensure_agro_catalog(db)
+    db.commit()
     try:
         print("=== AgriTwin demo kullanicilari ===")
         print(f"Ortak sifre: {DEMO_PASSWORD}")

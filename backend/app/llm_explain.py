@@ -23,7 +23,11 @@ DEFAULT_MODEL = "openai/gpt-4o-mini"
 
 
 def enrich_explanation(inp: RuleInput, result: RuleResult) -> RuleResult:
-    """Return result with LLM explanation when API key present; else unchanged."""
+    """Return result with LLM explanation when API key present; else unchanged.
+
+    Materials context may already be folded into rule explanation via material_notes.
+    When LLM is available, materials_summary is passed for irrigation/EC commentary only.
+    """
     key = (settings.openrouter_api_key or "").strip()
     if not key:
         return result
@@ -58,7 +62,10 @@ def _call_openrouter(api_key: str, inp: RuleInput, result: RuleResult) -> str | 
                 "content": (
                     "Sen AgriTwin AI sulama danışmanısın. Sadece Türkçe yaz. "
                     "Kural motoru kararını ve sayısal değerleri değiştirme; yalnızca neden "
-                    "açıkla. Gübre reçetesi, hastalık ilaçlaması veya uydu iddiası yazma. "
+                    "açıkla. Gübre/ilaç reçetesi, doz (kg/da, NPK uygulaması), hastalık teşhisi "
+                    "veya uydu iddiası yazma. Kullanıcının kayıtlı gübre/ilaç sınıflarını yalnızca "
+                    "nem, sulama, EC/tuzluluk ve veri kalitesi bağlamında yorumla "
+                    "(örn. yüksek K fertigasyon → EC izle; yaprak uygulaması ≠ toprak nemi). "
                     "Sanal sulama için kullanıcı onayı gerektiğini belirt. "
                     "Simüle IoT verisi gerçek saha sensörü değildir; abartma. "
                     "2-4 kısa cümle; sade ve çiftçi dostu."
@@ -81,7 +88,10 @@ def _call_openrouter(api_key: str, inp: RuleInput, result: RuleResult) -> str | 
                             "toprak_tipi": inp.soil_type,
                             "urun": inp.crop_type,
                             "gelisim": inp.growth_stage,
+                            "ec": inp.ec,
                         },
+                        "arazi_malzemeleri": inp.materials_summary,
+                        "malzeme_notlari": inp.material_notes or [],
                         "tahmini_nem": {
                             "24s": result.moisture_24h,
                             "48s": result.moisture_48h,
