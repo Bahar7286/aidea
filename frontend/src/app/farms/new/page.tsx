@@ -59,6 +59,9 @@ export default function NewFarmPage() {
               material_id: m.material_id,
               notes: m.notes || null,
               frequency: m.frequency || null,
+              last_applied_at: m.last_applied_at || null,
+              is_last_fertilizer: !!m.is_last_fertilizer,
+              is_last_pesticide: !!m.is_last_pesticide,
             }))
           : undefined,
       });

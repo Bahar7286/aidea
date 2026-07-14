@@ -115,6 +115,8 @@ class FarmMaterialUseIn(BaseModel):
         description="occasional|weekly|biweekly|monthly|seasonal|as_needed",
     )
     last_applied_at: datetime | None = None
+    is_last_fertilizer: bool = False
+    is_last_pesticide: bool = False
 
 
 class FarmMaterialUseOut(BaseModel):
@@ -123,6 +125,8 @@ class FarmMaterialUseOut(BaseModel):
     notes: str | None = None
     frequency: str | None = None
     last_applied_at: datetime | None = None
+    is_last_fertilizer: bool = False
+    is_last_pesticide: bool = False
     material: AgroMaterialOut | None = None
 
     class Config:

@@ -38,6 +38,9 @@ export default function EditFarmPage() {
             material_id: u.material_id,
             notes: u.notes,
             frequency: u.frequency,
+            last_applied_at: u.last_applied_at,
+            is_last_fertilizer: !!u.is_last_fertilizer,
+            is_last_pesticide: !!u.is_last_pesticide,
           }))
         );
       })
@@ -64,6 +67,9 @@ export default function EditFarmPage() {
           material_id: m.material_id,
           notes: m.notes || null,
           frequency: m.frequency || null,
+          last_applied_at: m.last_applied_at || null,
+          is_last_fertilizer: !!m.is_last_fertilizer,
+          is_last_pesticide: !!m.is_last_pesticide,
         })),
       });
       setFarm(updated);

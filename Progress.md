@@ -20,12 +20,13 @@ MVP şu probleme odaklanmaktadır:
 
 ## 3. Genel Proje Durumu
 
-- **Proje Aşaması:** Sprint 5 — backend end-user hazır (CRUD + dikey dilim)
+- **Proje Aşaması:** Go-live sonrası — yerel + canlı MVP çalışır
 - **Ürün Adı:** AgriTwin AI
-- **MVP Durumu:** Yerel uçtan uca demo + P1 lab/bölge + test dataset load + `/iot/ingest`
+- **MVP Durumu:** Uçtan uca demo (auth → farm → veri → AI → senaryo → onaylı sulama) + lab/zones/devices/materials/hub/admin/subscription
 - **AI Durumu:** Kural motoru (güvenlik tabanı) + isteğe bağlı OpenRouter Türkçe açıklama; ML henüz yok
-- **Canlı Uygulama Durumu:** Vercel frontend + Render API (`aidea-three.vercel.app` / `aidea-f8ji.onrender.com`)
-- **UX:** Geniş masaüstü shell, lucide ikonlar, IoT-öncelikli arazi detay, dinamik şematik harita, geniş ürün listesi + özel ürün
+- **Canlı Uygulama:** Vercel + Render + Supabase — https://aidea-three.vercel.app / https://aidea-f8ji.onrender.com
+- **UX:** AppShell + AdminShell, lucide, Recharts, Leaflet OSM, SourceBadge/ConfirmGate kalıpları
+- **Ekim geçmişi:** Shipped on main (`058a205`) — sezon kaydı + kural tabanlı sonraki ürün önerisi (reçete değil)
 
 ## 4. Tamamlanan Dokümanlar
 
@@ -73,19 +74,23 @@ MVP şu probleme odaklanmaktadır:
 - Tahmini su kullanımı ve tasarruf
 - Laboratuvar analizi (P1 — rapor/manuel, birimli; gübre reçetesi yok)
 - Arazi gübre/ilaç **sınıf** kataloğu + farm association (yorum bağlamı; reçete yok)
-- Ürün sezon geçmişi + kural tabanlı sonraki ürün önerileri (rotasyon; reçete yok)
+- Admin paneli, hub/KPI, abonelik plan seçimi (ödeme yok)
+- Open-Meteo hava + Leaflet OSM haritalar
+- Demo kullanıcıları + `SEED_DEMO_USERS` / `/auth/demo-login`
+
+- Ürün sezon geçmişi + kural tabanlı sonraki ürün önerileri (rotasyon bağlamı; reçete değil)
 
 ### MVP dışı
 
 - Gerçek uydu analizi
 - Drone görüntü analizi
 - Gerçek zamanlı pH kalibrasyonu
-- Gübre optimizasyonu
+- Gübre **reçetesi** / doz optimizasyonu (malzeme kataloğu ≠ reçete)
 - Hastalık tespiti
 - Verim tahmini
-- Tam otomatik sulama
+- Tam otomatik sulama (onaysız)
 - Gerçek tarla robotu
-- Çoklu kooperatif paneli
+- Gerçek ödeme / faturalama
 - Gelişmiş kurumsal raporlama
 
 ---
@@ -275,8 +280,10 @@ MVP şu probleme odaklanmaktadır:
 - [x] Sulama yapmama
 - [x] Süre artırma/azaltma
 - [x] Senaryo karşılaştırma tablosu
+- [x] Leaflet OSM arazi haritası (dashboard / twin / landing)
+- [ ] Risk ısı haritası / poligon çizimi (ileri)
 
-**Durum:** Backend + farm detay UI tamamlandı; harita/grafik yok
+**Durum:** Backend + UI tamam; Leaflet OSM canlı; risk alanı ısı haritası yok
 
 ---
 
@@ -293,7 +300,7 @@ MVP şu probleme odaklanmaktadır:
 - [x] Sulama sonrası nem güncelleme
 - [x] AI yeniden analiz
 
-**Durum:** Backend + onay modalı UI tamamlandı; pompa/geri sayım yok
+**Durum:** Backend + onay modalı UI + durum/geri sayım yüzeyi tamam
 
 ---
 
@@ -313,7 +320,7 @@ MVP şu probleme odaklanmaktadır:
 - [x] Tahmini tasarruf (kural tabanlı takvim baseline)
 - [x] Anomali kayıtları
 
-**Durum:** Temel kartlar farm/dashboard üzerinde; rapor ekranı yok
+**Durum:** Dashboard + farm hub/overview KPI; ayrı “kurumsal rapor” ürünü yok
 
 ---
 
@@ -333,35 +340,35 @@ MVP şu probleme odaklanmaktadır:
 - [ ] Performans testi
 - [ ] Mobil görünüm testi
 
-**Not:** Backend API/unit pytest çalışıyor; frontend otomasyon P1 (`TEST_PLAN.md` §5). Deploy/HTTPS canlı URL kullanıcı hesabı bekliyor. Demo provası: `DEMO_CHECKLIST.md`.
+**Not:** Backend API/unit pytest çalışıyor; frontend otomasyon P1 (`TEST_PLAN.md` §5). Demo: `DEMO_CHECKLIST.md`. Canlı URL mevcut (aşağı Faz 10).
 
-### Deploy notları (kullanıcı hesabı gerekir)
+### Deploy notları
 
 1. Frontend: Vercel — `frontend/` + `NEXT_PUBLIC_API_URL`
-2. Backend: Render/Railway/Fly — `DATABASE_URL`, `SECRET_KEY`, CORS
-3. HTTPS ve canlı URL deploy sonrası `Progress.md` işaretlenir
+2. Backend: Render — `DATABASE_URL`, `SECRET_KEY`, CORS, `SEED_DEMO_USERS`, opsiyonel `OPENROUTER_API_KEY`
+3. HTTPS platform varsayılanı; URL’ler bu dokümanda
 4. Secret / cloud credential bu repoya yazılmaz
 5. Tam plan: [`GO_LIVE_PLAN.md`](GO_LIVE_PLAN.md)
 
-**Durum:** Başlanmadı (plan dokümanı hazır; prod deploy bekliyor)
+**Durum:** Canlı ortam çalışıyor; sertleştirme (Sentry, SMTP, backup politikası) açık
 
 ---
 
 ## Faz 10 — Canlıya Alma
 
-- [ ] Frontend deploy
-- [ ] Backend deploy
-- [ ] Veritabanı prod bağlantısı
-- [ ] Ortam değişkenleri
-- [x] Demo kullanıcı hesabı (`DEMO_USERS.md` + `scripts.seed_demo`) — 4 persona **ayırt edici** arazi/veri; startup + `/auth/demo-login` aynı seeder
-- [x] Landing hero (harita/sera görseli, marka yeşili) + dashboard harita/grafik alanı
-- [ ] HTTPS
-- [ ] Hata logları
-- [ ] Canlı URL
-- [ ] Yedekleme
-- [ ] Son canlı test
+- [x] Frontend deploy (Vercel — `aidea-three.vercel.app`)
+- [x] Backend deploy (Render — `aidea-f8ji.onrender.com`)
+- [x] Veritabanı prod bağlantısı (Supabase Postgres)
+- [x] Ortam değişkenleri (CORS, secrets host’ta)
+- [x] Demo kullanıcı hesabı (`DEMO_USERS.md` + `scripts.seed_demo`) — 4 persona; startup + `/auth/demo-login`
+- [x] Landing hero + dashboard harita/grafik
+- [x] HTTPS (platform)
+- [ ] Hata logları (Sentry vb.)
+- [x] Canlı URL
+- [ ] Yedekleme politikası (ürün)
+- [ ] Son jüri / sunum canlı testi
 
-**Durum:** Demo seed + landing polish canlıya alma yolunda; prod env `SEED_DEMO_USERS=1` + redeploy ile yenilenir.
+**Durum:** Prod stack canlı; demo seed ve OpenRouter opsiyonel. Sunum provası açık.
 
 ---
 
@@ -460,7 +467,7 @@ MVP şu probleme odaklanmaktadır:
 - [x] Senaryolar tanımlandı
 - [x] Tahmin grafikleri (Recharts)
 - [x] Senaryo motoru
-- [x] Dijital ikiz ekranı (şematik; Leaflet P2)
+- [x] Dijital ikiz ekranı (Leaflet OSM + şematik twin)
 
 ---
 
@@ -492,8 +499,8 @@ MVP şu probleme odaklanmaktadır:
 
 ### Durum
 
-- [ ] Testler
-- [ ] Deploy
+- [x] Testler (backend pytest; frontend otomasyon açık)
+- [x] Deploy (Vercel + Render canlı)
 - [x] Demo hesabı (4 persona, ortak şifre Secret12)
 - [ ] Sunum provası
 
@@ -544,35 +551,37 @@ MVP şu probleme odaklanmaktadır:
 
 ### P0 — Hemen yapılmalı
 
-1. Demo provası (`DEMO_CHECKLIST.md` + Domates Serası) — canlı kayıt kullanıcıda
-2. Prod deploy (Vercel + backend) — **cloud hesabı / secret gerekir** → [`GO_LIVE_PLAN.md`](GO_LIVE_PLAN.md)
+1. Demo / jüri provası (`DEMO_CHECKLIST.md` + Domates Serası)
+2. ~~Prod deploy (Vercel + Render + Supabase)~~ — canlı
 3. ~~Su tasarrufu / rapor derinliği~~ (hub + overview KPI)
 4. ~~Recharts ile 72s nem grafiği~~
 5. F11 legacy monolit içeriğini temizlemek (opsiyonel)
 
 ### P1 — Sonraki adım
 
-1. ~~Laboratuvar analizi: manuel lab + birim + onay~~ (API + UI)
+1. ~~Laboratuvar analizi: manuel lab + birim + onay~~ (API + UI; dosya zorunlu path)
 2. ~~Ekran haritası / UX specifikasyonu~~ (`ekran-haritasi.md` — as-built senkron)
 3. ~~App shell + MVP-20 rota ayrıştırması~~ (`ekran-haritasi.md` §7)
 4. Test veri seti seçici UI (6 senaryo picker)
-5. ~~Arazi düzenleme/silme UI~~ (API + `/farms/[id]/edit` + soft-delete)
+5. ~~Arazi düzenleme/silme UI~~
 6. ~~Çelişkili veri kontrolü (IoT vs lab)~~
 7. Field Node Lite firmware / saha kalibrasyonu (`iot-mimarisi.md`)
-8. shadcn/ui bileşenleri
+8. shadcn/ui bileşenleri (opsiyonel)
 9. Cihaz durumu ekranı (battery / signal from ingest)
 10. ~~Profil / ayarlar UI (`PATCH /auth/me` hub)~~
-11. F13 şematik dijital ikiz viz (Leaflet P2)
+11. ~~Leaflet OSM haritalar~~ (dashboard/twin/landing)
 12. Frontend Playwright smoke (`TEST_PLAN.md` §5)
+13. ~~Ekim geçmişi + crop suggestions~~
 
 ### P2 — Sonraki sürüm
 
 1. ~~Admin panel A01–A08 (`/admin`, bootstrap)~~
 2. Lab OCR (gerçek)
-3. Gerçek sensör / hava API
-4. MQTT
-5. Dijital ikiz haritası (Leaflet)
+3. Gerçek sensör / MQTT
+4. Gerçek ödemeler / SMTP
+5. Risk ısı haritası / poligon
 6. Gübre reçetesi (ayrı ürün kararı; MVP dışı)
+7. ML (Scikit-learn / XGBoost) + SHAP
 
 ---
 
@@ -650,7 +659,7 @@ MVP şu probleme odaklanmaktadır:
 - [x] Otomasyon akışı tanımlandı
 - [x] Demo verisi hazırlandı (Domates Serası + sensör/AI seed)
 - [x] Demo hesabı oluşturuldu (`python -m scripts.seed_demo`)
-- [ ] Canlı uygulama hazır
+- [x] Canlı uygulama hazır (`aidea-three.vercel.app`)
 - [ ] Yedek demo videosu hazır
 - [ ] Sunum provası yapıldı
 
@@ -660,41 +669,37 @@ MVP şu probleme odaklanmaktadır:
 
 ### Tamamlanan
 
-- Ürün fikri
-- Problem tanımı
-- MVP kapsamı
-- PRD
-- Canvas
-- Geliştirme planı
-- Veri yapısı
-- AI görevleri
-- IoT simülasyon yaklaşımı
-- Demo akışı
-- Cursor rules ve AGENTS.md
-- Repo scaffold (frontend/backend/ai/iot)
-- Supabase SQL şeması
-- Kayıt / giriş / arazi / manuel veri / kural tabanlı öneri dikey dilimi
-- 6 test senaryosu dataset
+- Ürün dokümanları + Cursor rules
+- Repo scaffold + dikey dilim (auth → sulama)
+- Lab/zones/devices/datasets/ingest
+- Recharts + Leaflet OSM + Open-Meteo
+- OpenRouter hibrit açıklama (opsiyonel)
+- Agro malzemeler (reçetesiz)
+- Admin + hub + abonelik plan UI
+- Canlı deploy (Vercel + Render + Supabase)
+- 4 demo persona seed
 
 ### Devam eden
 
-- Prod deploy / canlı ortam (kullanıcı credentials)
-- Demo / sunum provası (`DEMO_CHECKLIST.md`)
+- Demo / sunum provası
+- ~~Ekim geçmişi~~ (shipped; rotasyon önerisi)
+- Prod sertleştirme (Sentry, SMTP, backup)
 
-### Başlanmayan
+### Başlanmayan / açık
 
 - ML model eğitimi
-- Gerçek OCR / Leaflet harita
-- shadcn/ui bileşen kütüphanesi
+- Gerçek OCR
+- Gerçek ödeme
+- shadcn/ui tam kütüphane
 - Frontend otomatik smoke suite
 
 ---
 
 ## 15. Genel Durum Değerlendirmesi
 
-AgriTwin AI yerel MVP dilimi çalışır durumda: kayıt, arazi, veri, AI önerisi, senaryo karşılaştırması, onaylı sanal sulama ve anomali uyarıları.
+AgriTwin AI **yerel ve canlı** MVP dilimi çalışır: kayıt/demo-login, arazi, veri kaynakları, AI önerisi, senaryo, onaylı sanal sulama, lab, cihazlar, malzemeler, admin.
 
-Kalan boşluklar: canlı URL (deploy hesabı), ML modeli, sunum provası. Recharts 72s grafik, su tasarrufu KPI/rapor, profil ayarları, IoT–lab çelişki uyarısı ve sulama geri sayımı tamam. `TEST_PLAN.md` as-built test planı hazır; backend pytest yeşil.
+Kalan boşluklar: sunum provası, ML, gerçek OCR/ödeme, üretim sertleştirme. Leaflet/Recharts/Open-Meteo/deploy tamam. `TEST_PLAN.md` + pytest yeşil.
 
 ### 2026-07-14 — Agro malzeme kataloğu
 
@@ -704,4 +709,22 @@ Kalan boşluklar: canlı URL (deploy hesabı), ML modeli, sunum provası. Rechar
 - [x] AI `enrich_explanation` + öneri insight malzemeleri kullanır (doz reçetesi yok)
 - [x] `FERTILIZER_PESTICIDE_CATALOG.md` kaynak özeti
 - [x] Testler: `test_agro_materials.py`
+
+### 2026-07-14 — Son kullanılan gübre / ilaç
+
+- [x] Genişletilebilir dataset: `backend/ai/datasets/agro_materials.json` → DB seed
+- [x] `FarmMaterialUse.is_last_fertilizer` / `is_last_pesticide` + `last_applied_at` (kategori başına tek son)
+- [x] UI: create/edit + arazi detay + hub — çoklu seçim + son gübre/ilaç dropdown
+- [x] AI summary'de SON GÜBRE / SON İLAÇ vurgusu (reçete yok, yalnızca bağlam)
+- [x] Testler güncellendi
+
+### 2026-07-14 — Ekim geçmişi (shipped)
+
+- [x] `CropHistory` API + `CropHistoryPanel` (arazi detay)
+- [x] Kural tabanlı `/farms/{id}/crop-suggestions` (rotasyon; reçete değil)
+- [x] Demo seed sezon kayıtları
+
+### 2026-07-14 — Doküman as-built senkronu
+
+- Major docs (`canvas`, `mvp`, `prd`, `plan`, `designsystem`, `Progress`, `techstack`, `backend/README`, README/AGENTS/GO_LIVE/ekran-haritasi/DEMO_USERS) as-built’e çekildi.
 

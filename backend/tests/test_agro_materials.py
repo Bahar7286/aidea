@@ -13,6 +13,7 @@ from sqlalchemy.pool import StaticPool
 
 from app.database import Base, get_db
 from app.main import app
+from app.agro_catalog import load_catalog_from_dataset, format_materials_summary
 
 engine = create_engine(
     "sqlite://",
@@ -63,15 +64,25 @@ def _auth_headers(email: str) -> dict[str, str]:
     return {"Authorization": f"Bearer {token}"}
 
 
+def test_dataset_catalog_loads():
+    items = load_catalog_from_dataset()
+    assert len(items) >= 15
+    assert any(i.code == "fert_map" for i in items)
+    assert any(i.code == "pp_herbicide" for i in items)
+    assert any(i.kind == "fertilizer" for i in items)
+    assert any(i.kind == "plant_protection" for i in items)
+
+
 def test_catalog_list_and_farm_associate():
     headers = _auth_headers("agro-mat@example.com")
 
     catalog = client.get("/agro-materials", headers=headers)
     assert catalog.status_code == 200, catalog.text
     rows = catalog.json()
-    assert len(rows) >= 10
+    assert len(rows) >= 15
     assert any(r["code"] == "fert_map" for r in rows)
     assert any(r["kind"] == "plant_protection" for r in rows)
+    assert any(r["code"] == "fert_npk" for r in rows)
     fert_only = client.get("/agro-materials?kind=fertilizer", headers=headers)
     assert fert_only.status_code == 200
     assert all(r["kind"] == "fertilizer" for r in fert_only.json())
@@ -139,3 +150,89 @@ def test_create_farm_with_materials_payload():
     uses = farm.json()["material_uses"]
     assert len(uses) == 1
     assert uses[0]["frequency"] == "seasonal"
+
+
+def test_last_used_fertilizer_and_pesticide():
+    headers = _auth_headers("agro-last@example.com")
+    catalog = client.get("/agro-materials", headers=headers).json()
+    by_code = {r["code"]: r["id"] for r in catalog}
+    fert_id = by_code["fert_kno3"]
+    fert2_id = by_code["fert_map"]
+    pest_id = by_code["pp_fungicide"]
+
+    farm = client.post(
+        "/farms",
+        headers=headers,
+        json={
+            "name": "Son Kullanım Tarla",
+            "materials": [
+                {
+                    "material_id": fert_id,
+                    "is_last_fertilizer": True,
+                    "last_applied_at": "2026-06-01T12:00:00",
+                },
+                {
+                    "material_id": fert2_id,
+                    "is_last_fertilizer": True,  # only last one wins
+                },
+                {
+                    "material_id": pest_id,
+                    "is_last_pesticide": True,
+                    "last_applied_at": "2026-06-10T12:00:00",
+                },
+            ],
+        },
+    )
+    assert farm.status_code == 201, farm.text
+    uses = farm.json()["material_uses"]
+    assert len(uses) == 3
+    last_ferts = [u for u in uses if u["is_last_fertilizer"]]
+    last_pests = [u for u in uses if u["is_last_pesticide"]]
+    assert len(last_ferts) == 1
+    assert last_ferts[0]["material_id"] == fert2_id
+    assert len(last_pests) == 1
+    assert last_pests[0]["material_id"] == pest_id
+    assert last_pests[0]["last_applied_at"] is not None
+
+    # Wrong kind rejected
+    bad = client.put(
+        f"/farms/{farm.json()['id']}/materials",
+        headers=headers,
+        json={
+            "items": [
+                {
+                    "material_id": pest_id,
+                    "is_last_fertilizer": True,
+                }
+            ]
+        },
+    )
+    assert bad.status_code == 400
+
+    # Summary highlights last-used
+    class FakeMat:
+        def __init__(self, name_tr, kind, nutrient_focus=None):
+            self.name_tr = name_tr
+            self.kind = kind
+            self.nutrient_focus = nutrient_focus
+
+    class FakeUse:
+        def __init__(self, mat, **kw):
+            self.material = mat
+            self.frequency = None
+            self.notes = None
+            self.last_applied_at = None
+            self.is_last_fertilizer = kw.get("is_last_fertilizer", False)
+            self.is_last_pesticide = kw.get("is_last_pesticide", False)
+
+    summary = format_materials_summary(
+        [
+            FakeUse(FakeMat("KNO3", "fertilizer", "K"), is_last_fertilizer=True),
+            FakeUse(FakeMat("Fungisit", "plant_protection"), is_last_pesticide=True),
+            FakeUse(FakeMat("MAP", "fertilizer", "P")),
+        ]
+    )
+    assert summary is not None
+    assert "SON GÜBRE" in summary
+    assert "SON İLAÇ" in summary
+    assert summary.index("SON GÜBRE") < summary.index("MAP")

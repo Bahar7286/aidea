@@ -1,14 +1,29 @@
 ﻿"""Reference agro-material catalog (TR tomato greenhouse / open-field oriented).
 
 Educational classes only — not brand labels, not dose prescriptions.
+Primary source: backend/ai/datasets/agro_materials.json (expandable).
 Sources summarized in FERTILIZER_PESTICIDE_CATALOG.md at repo root.
 """
 
 from __future__ import annotations
 
+import json
+import logging
 from dataclasses import dataclass
+from pathlib import Path
 
 from sqlalchemy.orm import Session
+
+logger = logging.getLogger(__name__)
+
+_DATASET_PATH = Path(__file__).resolve().parents[1] / "ai" / "datasets" / "agro_materials.json"
+
+# JSON category → DB kind
+_KIND_MAP = {
+    "fertilizer": "fertilizer",
+    "pesticide": "plant_protection",
+    "plant_protection": "plant_protection",
+}
 
 
 @dataclass(frozen=True)
@@ -26,237 +41,68 @@ class CatalogItem:
     sort_order: int = 100
 
 
-CATALOG: tuple[CatalogItem, ...] = (
-    CatalogItem(
-        code="fert_map",
-        kind="fertilizer",
-        name_tr="MAP (Monoamonyum fosfat)",
-        name_en="MAP (monoammonium phosphate)",
-        category="fosfat",
-        nutrient_focus="P (N-P)",
-        purpose="Kök ve erken dönem fosfor kaynağı; damla fertigasyonda yaygındır.",
-        ec_salinity_note="Tuz etkisi orta; kalsiyum nitrat ile aynı stok tankında karıştırılmaz.",
-        phi_class_note=None,
-        irrigation_context="Fosfor ağırlıklı besleme döneminde EC'yi aşırı yükseltmeden sulama frekansını izleyin.",
-        sort_order=10,
-    ),
-    CatalogItem(
-        code="fert_mkp",
-        kind="fertilizer",
-        name_tr="MKP (Monopotasyum fosfat)",
-        name_en="MKP (monopotassium phosphate)",
-        category="fosfat",
-        nutrient_focus="P-K",
-        purpose="P+K kaynağı; çiçeklenme / meyve dönemlerinde fertigasyonda kullanılır.",
-        ec_salinity_note="EC'ye katkı eder; tank karışımında Ca ile çökelme riski.",
-        phi_class_note=None,
-        irrigation_context="P-K fertigasyon EC artışını hızlandırabilir — yüksek EC'de yıkama sulaması düşünülür.",
-        sort_order=20,
-    ),
-    CatalogItem(
-        code="fert_kno3",
-        kind="fertilizer",
-        name_tr="Potasyum nitrat (KNO3)",
-        name_en="Potassium nitrate",
-        category="potasyum",
-        nutrient_focus="K (+N)",
-        purpose="Meyve gelişimi / kalite döneminde potasyum ağırlıklı fertigasyon.",
-        ec_salinity_note="Yüksek K programları EC birikimine yol açabilir.",
-        phi_class_note=None,
-        irrigation_context="Yüksek K fertigasyonunda EC/tuzluluk ile nemi birlikte yorumlayın; doz reçetesi üretilmez.",
-        sort_order=30,
-    ),
-    CatalogItem(
-        code="fert_k2so4",
-        kind="fertilizer",
-        name_tr="Potasyum sülfat",
-        name_en="Potassium sulfate",
-        category="potasyum",
-        nutrient_focus="K (+S)",
-        purpose="Klorürsüz potasyum kaynağı; açık alan ve sera taban/fertigasyon.",
-        ec_salinity_note="Sülfatlı gübreler EC'yi yükseltir; Ca nitrat ile aynı tankta karıştırılmaz.",
-        phi_class_note=None,
-        irrigation_context="Sülfatlı K programında drenaj / yıkama ihtiyacı nem yönetimini etkiler.",
-        sort_order=40,
-    ),
-    CatalogItem(
-        code="fert_nh4no3",
-        kind="fertilizer",
-        name_tr="Amonyum nitrat",
-        name_en="Ammonium nitrate",
-        category="azot",
-        nutrient_focus="N",
-        purpose="Hızlı azot kaynağı; sera ve açık alanda yaygın.",
-        ec_salinity_note="Yoğun N programı kök bölgesi EC ve pH dengesini bozabilir.",
-        phi_class_note=None,
-        irrigation_context="Aşırı N ile birlikte yüksek nem/aşırı sulama riski artabilir — dengeli sulama izlenir.",
-        sort_order=50,
-    ),
-    CatalogItem(
-        code="fert_can",
-        kind="fertilizer",
-        name_tr="Kalsiyum nitrat",
-        name_en="Calcium nitrate",
-        category="kalsiyum",
-        nutrient_focus="Ca (+N)",
-        purpose="Ca takviyesi; düzensiz sulama ile birlikte değerlendirilir.",
-        ec_salinity_note="A/B tankta Ca ayrı tutulur; fosfat/sülfat ile çökelme.",
-        phi_class_note=None,
-        irrigation_context="Ca alımı düzensiz sulamadan etkilenir — nem sürekliliği yorumlanır, doz yazılmaz.",
-        sort_order=60,
-    ),
-    CatalogItem(
-        code="fert_mgso4",
-        kind="fertilizer",
-        name_tr="Magnezyum sülfat / nitrat",
-        name_en="Magnesium sulfate / nitrate",
-        category="magnezyum",
-        nutrient_focus="Mg",
-        purpose="Mg takviyesi; dönemsel fertigasyon programlarında yer alır.",
-        ec_salinity_note="Sülfat formu EC'ye katkı eder.",
-        phi_class_note=None,
-        irrigation_context="Mg programı EC okumasını etkileyebilir; nem okuması ile karıştırılmamalıdır.",
-        sort_order=70,
-    ),
-    CatalogItem(
-        code="fert_as",
-        kind="fertilizer",
-        name_tr="Amonyum sülfat",
-        name_en="Ammonium sulfate",
-        category="azot",
-        nutrient_focus="N (+S)",
-        purpose="N+S kaynağı; damla ve bant uygulamalarında kullanılır.",
-        ec_salinity_note="Sülfat tuz birikimine katkı; Ca ile tank uyumsuzluğu.",
-        phi_class_note=None,
-        irrigation_context="Tuz birikimi riskinde yıkama sulaması nem profilini değiştirir.",
-        sort_order=80,
-    ),
-    CatalogItem(
-        code="fert_urea",
-        kind="fertilizer",
-        name_tr="Üre / UAN",
-        name_en="Urea / UAN",
-        category="azot",
-        nutrient_focus="N",
-        purpose="Ucuz azot kaynağı; açık alanda ve bazı fertigasyon programlarında.",
-        ec_salinity_note="Aşırı kullanım kök yanması / EC etkisi yaratabilir.",
-        phi_class_note=None,
-        irrigation_context="Azot zamanlaması sulama döngüsüyle bağlanır; reçete üretilmez.",
-        sort_order=90,
-    ),
-    CatalogItem(
-        code="fert_dap",
-        kind="fertilizer",
-        name_tr="DAP / taban fosfor",
-        name_en="DAP / base phosphate",
-        category="fosfat",
-        nutrient_focus="N-P",
-        purpose="Açık alan taban gübreleme sınıfı.",
-        ec_salinity_note="Yüksek dozlarda lokal tuz stresi.",
-        phi_class_note=None,
-        irrigation_context="Taban sonrası ilk sulamalar tuz yıkanmasını etkileyebilir.",
-        sort_order=100,
-    ),
-    CatalogItem(
-        code="fert_compost",
-        kind="fertilizer",
-        name_tr="Kompost / organik madde",
-        name_en="Compost / organic matter",
-        category="organik",
-        nutrient_focus="organik C / yavaş N",
-        purpose="Toprak yapısı ve su tutma; organik girdi sınıfı.",
-        ec_salinity_note="Olgunlaşmamış kompost lokal EC / gaz etkisi yapabilir.",
-        phi_class_note=None,
-        irrigation_context="Organik madde su tutmayı değiştirir — nem eşikleri ürün/toprakla birlikte okunur.",
-        sort_order=110,
-    ),
-    CatalogItem(
-        code="fert_manure",
-        kind="fertilizer",
-        name_tr="Ahır gübresi / farmyard manure",
-        name_en="Farmyard manure",
-        category="organik",
-        nutrient_focus="organik N-P-K",
-        purpose="Açık alan organik baz; değişken tuz ve olgunlaşma.",
-        ec_salinity_note="Taze gübre yüksek EC / amonyak riski taşır.",
-        phi_class_note=None,
-        irrigation_context="Yüksek tuzlu organik girdide ilk sulamalar yıkama etkisi gösterebilir.",
-        sort_order=120,
-    ),
-    CatalogItem(
-        code="pp_fungicide",
-        kind="plant_protection",
-        name_tr="Fungisit (genel sınıf)",
-        name_en="Fungicide (generic class)",
-        category="fungisit",
-        nutrient_focus=None,
-        purpose="Fungal hastalık baskısı; TR sera domateste sık kullanılan gruplardan.",
-        ec_salinity_note=None,
-        phi_class_note="Hasat öncesi bekleme süresi (PHI) ürüne ve etken maddeye göre değişir — etiket zorunlu.",
-        irrigation_context="Yaprak uygulaması toprak nem sensörünü temsil etmez; okumayı ilaçla karıştırmayın.",
-        sort_order=200,
-    ),
-    CatalogItem(
-        code="pp_insecticide",
-        kind="plant_protection",
-        name_tr="İnsektisit (genel sınıf)",
-        name_en="Insecticide (generic class)",
-        category="insektisit",
-        nutrient_focus=None,
-        purpose="Zararlı böcek baskısı; sera domates anketlerinde yaygın kategori.",
-        ec_salinity_note=None,
-        phi_class_note="PHI ve MRL ürüne özgüdür; bu katalog reçete değildir.",
-        irrigation_context="İlaçlama günü yaprak ıslaklığı nem/sensor yorumunu yanıltabilir.",
-        sort_order=210,
-    ),
-    CatalogItem(
-        code="pp_acaricide",
-        kind="plant_protection",
-        name_tr="Akarisit (genel sınıf)",
-        name_en="Acaricide (generic class)",
-        category="akarisit",
-        nutrient_focus=None,
-        purpose="Kırmızı örümcek vb. akar mücadelesi; sera domateste sık kategori.",
-        ec_salinity_note=None,
-        phi_class_note="Bekleme süresi etiket ve ihracat MRL'lerine bağlıdır.",
-        irrigation_context="Foliar uygulama sonrası nem okumasını toprak nemi sanmayın.",
-        sort_order=220,
-    ),
-    CatalogItem(
-        code="pp_nematicide",
-        kind="plant_protection",
-        name_tr="Nematisit (genel sınıf)",
-        name_en="Nematicide (generic class)",
-        category="nematisit",
-        nutrient_focus=None,
-        purpose="Kök-ur nematodu vb.; sera domateste daha seyrek ama kayıtlı kategori.",
-        ec_salinity_note=None,
-        phi_class_note="Çoğu ürün sıkı PHI / uygulama kısıtı taşır — mühendis/etiket şart.",
-        irrigation_context="Toprak uygulaması sonrası ıslatma sulaması nem profilini geçici değiştirir.",
-        sort_order=230,
-    ),
-    CatalogItem(
-        code="pp_biological",
-        kind="plant_protection",
-        name_tr="Biyolojik / IPM destek",
-        name_en="Biological / IPM support",
-        category="biyolojik",
-        nutrient_focus=None,
-        purpose="Faydalı böcek / biyolojik preparat sınıfı; kalıntı baskısını azaltma hedefi.",
-        ec_salinity_note=None,
-        phi_class_note="Genelde kimyasal PHI'den farklıdır; ürün bazlı kontrol gerekir.",
-        irrigation_context="Sulama zamanlaması faydalı organizma salımını etkileyebilir — doz reçetesi yok.",
-        sort_order=240,
-    ),
-)
+def _item_from_json(raw: dict) -> CatalogItem:
+    cat = str(raw.get("category") or "fertilizer").strip().lower()
+    kind = _KIND_MAP.get(cat, "fertilizer")
+    code = str(raw.get("id") or raw.get("code") or "").strip()
+    if not code:
+        raise ValueError("catalog item missing id/code")
+    subcategory = str(raw.get("subcategory") or raw.get("class") or cat).strip()
+    notes = raw.get("notes")
+    notes_str = str(notes).strip() if notes else None
+    # Pesticides: notes → PHI; fertilizers: notes → EC/salinity
+    if kind == "plant_protection":
+        phi = notes_str
+        ec = None
+    else:
+        ec = notes_str
+        phi = None
+    return CatalogItem(
+        code=code,
+        kind=kind,
+        name_tr=str(raw["name_tr"]),
+        name_en=str(raw.get("name_en") or raw["name_tr"]),
+        category=subcategory,
+        nutrient_focus=(
+            str(raw["nutrient_focus"]) if raw.get("nutrient_focus") else None
+        ),
+        purpose=str(raw.get("purpose") or ""),
+        ec_salinity_note=ec,
+        phi_class_note=phi,
+        irrigation_context=(
+            str(raw["irrigation_context"]) if raw.get("irrigation_context") else None
+        ),
+        sort_order=int(raw.get("sort_order") or 100),
+    )
+
+
+def load_catalog_from_dataset(path: Path | None = None) -> tuple[CatalogItem, ...]:
+    """Load expandable catalog from JSON dataset."""
+    p = path or _DATASET_PATH
+    if not p.is_file():
+        logger.warning("Agro materials dataset missing: %s", p)
+        return ()
+    data = json.loads(p.read_text(encoding="utf-8"))
+    items = data.get("items") if isinstance(data, dict) else data
+    if not isinstance(items, list):
+        raise ValueError("agro_materials.json must contain an items list")
+    return tuple(_item_from_json(raw) for raw in items)
+
+
+CATALOG: tuple[CatalogItem, ...] = load_catalog_from_dataset()
 
 
 def ensure_agro_catalog(db: Session) -> int:
     """Idempotent upsert of reference catalog rows. Returns touched count."""
     from app.models import AgroMaterial
 
+    catalog = load_catalog_from_dataset() or CATALOG
+    if not catalog:
+        logger.error("Agro catalog empty — skip seed")
+        return 0
+
     touched = 0
-    for item in CATALOG:
+    for item in catalog:
         row = db.query(AgroMaterial).filter(AgroMaterial.code == item.code).first()
         fields = dict(
             kind=item.kind,
@@ -282,10 +128,14 @@ def ensure_agro_catalog(db: Session) -> int:
 
 
 def format_materials_summary(uses: list) -> str | None:
-    """Build compact Turkish summary for LLM / rule commentary."""
+    """Build compact Turkish summary for LLM / rule commentary.
+
+    Last-used fertilizer/pesticide are highlighted first for AI context.
+    """
     if not uses:
         return None
-    parts: list[str] = []
+    last_parts: list[str] = []
+    other_parts: list[str] = []
     for use in uses:
         mat = getattr(use, "material", None)
         if mat is None:
@@ -297,9 +147,23 @@ def format_materials_summary(uses: list) -> str | None:
         bit += ")"
         if use.frequency:
             bit += f" — sıklık: {use.frequency}"
+        if use.last_applied_at:
+            dt = use.last_applied_at
+            date_s = dt.date().isoformat() if hasattr(dt, "date") else str(dt)[:10]
+            bit += f" — son uygulama: {date_s}"
         if use.notes:
             bit += f" — not: {use.notes[:80]}"
-        parts.append(bit)
+
+        is_last_fert = bool(getattr(use, "is_last_fertilizer", False))
+        is_last_pest = bool(getattr(use, "is_last_pesticide", False))
+        if is_last_fert:
+            last_parts.append(f"SON GÜBRE: {bit}")
+        elif is_last_pest:
+            last_parts.append(f"SON İLAÇ: {bit}")
+        else:
+            other_parts.append(bit)
+
+    parts = last_parts + other_parts
     return "; ".join(parts) if parts else None
 
 
@@ -316,7 +180,11 @@ def commentary_from_materials(uses: list, ec: float | None = None) -> list[str]:
             continue
         codes.add(mat.code)
         kinds.add(mat.kind)
-        if mat.irrigation_context:
+        if getattr(use, "is_last_fertilizer", False) and mat.irrigation_context:
+            notes.append(f"Son kullanılan gübre ({mat.name_tr}): {mat.irrigation_context}")
+        elif getattr(use, "is_last_pesticide", False) and mat.irrigation_context:
+            notes.append(f"Son kullanılan ilaç ({mat.name_tr}): {mat.irrigation_context}")
+        elif mat.irrigation_context:
             notes.append(mat.irrigation_context)
     high_k = {"fert_kno3", "fert_k2so4", "fert_mkp"} & codes
     if high_k and ec is not None and ec >= 2.5:
@@ -338,4 +206,4 @@ def commentary_from_materials(uses: list, ec: float | None = None) -> list[str]:
         if n not in seen:
             seen.add(n)
             out.append(n)
-    return out[:4]
+    return out[:5]

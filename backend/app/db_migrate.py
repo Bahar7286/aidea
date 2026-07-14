@@ -154,6 +154,31 @@ def _ensure_sqlite() -> None:
             if reading_cols and col not in reading_cols:
                 conn.execute(text(sql))
 
+        try:
+            mat_use_cols = {
+                row[1]
+                for row in conn.execute(
+                    text("PRAGMA table_info(farm_material_uses)")
+                ).fetchall()
+            }
+        except Exception:
+            mat_use_cols = set()
+        if mat_use_cols:
+            if "is_last_fertilizer" not in mat_use_cols:
+                conn.execute(
+                    text(
+                        "ALTER TABLE farm_material_uses "
+                        "ADD COLUMN is_last_fertilizer BOOLEAN DEFAULT 0"
+                    )
+                )
+            if "is_last_pesticide" not in mat_use_cols:
+                conn.execute(
+                    text(
+                        "ALTER TABLE farm_material_uses "
+                        "ADD COLUMN is_last_pesticide BOOLEAN DEFAULT 0"
+                    )
+                )
+
 
 def _ensure_postgres() -> None:
     with engine.begin() as conn:
@@ -171,5 +196,17 @@ def _ensure_postgres() -> None:
         conn.execute(
             text(
                 "ALTER TABLE users ADD COLUMN IF NOT EXISTS subscription_plan VARCHAR(40) DEFAULT 'free'"
+            )
+        )
+        conn.execute(
+            text(
+                "ALTER TABLE farm_material_uses "
+                "ADD COLUMN IF NOT EXISTS is_last_fertilizer BOOLEAN DEFAULT FALSE"
+            )
+        )
+        conn.execute(
+            text(
+                "ALTER TABLE farm_material_uses "
+                "ADD COLUMN IF NOT EXISTS is_last_pesticide BOOLEAN DEFAULT FALSE"
             )
         )

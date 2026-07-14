@@ -152,6 +152,9 @@ class FarmMaterialUse(Base):
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
     frequency: Mapped[str | None] = mapped_column(String(40), nullable=True)
     last_applied_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    # At most one last fertilizer and one last pesticide per farm (enforced in service).
+    is_last_fertilizer: Mapped[bool] = mapped_column(Boolean, default=False)
+    is_last_pesticide: Mapped[bool] = mapped_column(Boolean, default=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
     farm = relationship("Farm", back_populates="material_uses")

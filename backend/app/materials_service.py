@@ -19,6 +19,29 @@ def load_farm_uses(db: Session, farm_id: int) -> list[FarmMaterialUse]:
     )
 
 
+def _parse_last_applied(last) -> datetime | None:
+    if last is None:
+        return None
+    if isinstance(last, datetime):
+        return last.replace(tzinfo=None) if last.tzinfo else last
+    if isinstance(last, str):
+        try:
+            return datetime.fromisoformat(last.replace("Z", "+00:00")).replace(
+                tzinfo=None
+            )
+        except ValueError:
+            return None
+    return None
+
+
+def _field(raw, name: str, default=None):
+    if hasattr(raw, name):
+        return getattr(raw, name)
+    if isinstance(raw, dict):
+        return raw.get(name, default)
+    return default
+
+
 def sync_farm_materials(
     db: Session,
     farm_id: int,
@@ -29,41 +52,82 @@ def sync_farm_materials(
     """Replace farm material associations.
 
     Prefer `items` (rich). `material_ids` is a shorthand (notes/frequency cleared).
+    Enforces at most one is_last_fertilizer and one is_last_pesticide per farm;
+    last-used rows must match material kind (fertilizer / plant_protection).
     """
     if items is not None:
         desired: dict[int, dict] = {}
         for raw in items:
-            mid = raw.material_id if hasattr(raw, "material_id") else raw["material_id"]
-            notes = raw.notes if hasattr(raw, "notes") else raw.get("notes")
-            freq = raw.frequency if hasattr(raw, "frequency") else raw.get("frequency")
-            last = (
-                raw.last_applied_at
-                if hasattr(raw, "last_applied_at")
-                else raw.get("last_applied_at")
-            )
-            desired[int(mid)] = {
-                "notes": notes,
-                "frequency": freq,
-                "last_applied_at": last,
+            mid = int(_field(raw, "material_id"))
+            desired[mid] = {
+                "notes": _field(raw, "notes"),
+                "frequency": _field(raw, "frequency"),
+                "last_applied_at": _parse_last_applied(_field(raw, "last_applied_at")),
+                "is_last_fertilizer": bool(_field(raw, "is_last_fertilizer", False)),
+                "is_last_pesticide": bool(_field(raw, "is_last_pesticide", False)),
             }
     elif material_ids is not None:
-        desired = {int(m): {"notes": None, "frequency": None, "last_applied_at": None} for m in material_ids}
+        desired = {
+            int(m): {
+                "notes": None,
+                "frequency": None,
+                "last_applied_at": None,
+                "is_last_fertilizer": False,
+                "is_last_pesticide": False,
+            }
+            for m in material_ids
+        }
     else:
         return load_farm_uses(db, farm_id)
 
     if desired:
-        found = {
-            m.id
-            for m in db.query(AgroMaterial)
-            .filter(AgroMaterial.id.in_(list(desired.keys())), AgroMaterial.is_active.is_(True))
+        found_rows = (
+            db.query(AgroMaterial)
+            .filter(
+                AgroMaterial.id.in_(list(desired.keys())),
+                AgroMaterial.is_active.is_(True),
+            )
             .all()
-        }
-        missing = set(desired.keys()) - found
+        )
+        by_id = {m.id: m for m in found_rows}
+        missing = set(desired.keys()) - set(by_id.keys())
         if missing:
             raise HTTPException(
                 status_code=400,
                 detail=f"Geçersiz veya pasif malzeme id: {sorted(missing)}",
             )
+
+        # Normalize last flags: only one per category; kind must match.
+        last_fert_ids = [
+            mid
+            for mid, meta in desired.items()
+            if meta["is_last_fertilizer"] and by_id[mid].kind == "fertilizer"
+        ]
+        last_pest_ids = [
+            mid
+            for mid, meta in desired.items()
+            if meta["is_last_pesticide"] and by_id[mid].kind == "plant_protection"
+        ]
+        for mid, meta in desired.items():
+            mat = by_id[mid]
+            if meta["is_last_fertilizer"] and mat.kind != "fertilizer":
+                raise HTTPException(
+                    status_code=400,
+                    detail="Son kullanılan gübre yalnızca gübre sınıfından seçilebilir.",
+                )
+            if meta["is_last_pesticide"] and mat.kind != "plant_protection":
+                raise HTTPException(
+                    status_code=400,
+                    detail="Son kullanılan ilaç yalnızca bitki koruma sınıfından seçilebilir.",
+                )
+            meta["is_last_fertilizer"] = bool(
+                last_fert_ids and mid == last_fert_ids[-1]
+            )
+            meta["is_last_pesticide"] = bool(
+                last_pest_ids and mid == last_pest_ids[-1]
+            )
+    else:
+        by_id = {}
 
     existing = (
         db.query(FarmMaterialUse).filter(FarmMaterialUse.farm_id == farm_id).all()
@@ -75,16 +139,12 @@ def sync_farm_materials(
             db.delete(row)
     for mid, meta in desired.items():
         row = by_mid.get(mid)
-        last = meta["last_applied_at"]
-        if isinstance(last, str):
-            try:
-                last = datetime.fromisoformat(last.replace("Z", "+00:00")).replace(tzinfo=None)
-            except ValueError:
-                last = None
         if row:
             row.notes = meta["notes"]
             row.frequency = meta["frequency"]
-            row.last_applied_at = last
+            row.last_applied_at = meta["last_applied_at"]
+            row.is_last_fertilizer = meta["is_last_fertilizer"]
+            row.is_last_pesticide = meta["is_last_pesticide"]
         else:
             db.add(
                 FarmMaterialUse(
@@ -92,15 +152,18 @@ def sync_farm_materials(
                     material_id=mid,
                     notes=meta["notes"],
                     frequency=meta["frequency"],
-                    last_applied_at=last,
+                    last_applied_at=meta["last_applied_at"],
+                    is_last_fertilizer=meta["is_last_fertilizer"],
+                    is_last_pesticide=meta["is_last_pesticide"],
                 )
             )
     db.flush()
     return load_farm_uses(db, farm_id)
 
 
-
-def rule_material_context(db: Session, farm_id: int, ec: float | None = None) -> tuple[str | None, list[str]]:
+def rule_material_context(
+    db: Session, farm_id: int, ec: float | None = None
+) -> tuple[str | None, list[str]]:
     from app.agro_catalog import commentary_from_materials, format_materials_summary
 
     uses = load_farm_uses(db, farm_id)

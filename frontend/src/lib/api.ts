@@ -153,6 +153,8 @@ export type FarmMaterialUse = {
   notes: string | null;
   frequency: string | null;
   last_applied_at: string | null;
+  is_last_fertilizer?: boolean;
+  is_last_pesticide?: boolean;
   material?: AgroMaterial | null;
 };
 
@@ -756,6 +758,8 @@ export const api = {
       notes?: string | null;
       frequency?: string | null;
       last_applied_at?: string | null;
+      is_last_fertilizer?: boolean;
+      is_last_pesticide?: boolean;
     }>
   ) =>
     request<FarmMaterialUse[]>(`/farms/${farmId}/materials`, {

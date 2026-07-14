@@ -426,16 +426,38 @@ def _ensure_lab_report(
     db.flush()
 
 
-def _ensure_materials(db, farm: Farm, codes: list[str]) -> None:
+def _ensure_materials(
+    db,
+    farm: Farm,
+    codes: list[str],
+    *,
+    last_fertilizer_code: str | None = None,
+    last_pesticide_code: str | None = None,
+) -> None:
     ensure_agro_catalog(db)
     if db.query(FarmMaterialUse).filter(FarmMaterialUse.farm_id == farm.id).count() > 0:
         return
-    ids = [
-        m.id
+    by_code = {
+        m.code: m
         for m in db.query(AgroMaterial).filter(AgroMaterial.code.in_(codes)).all()
-    ]
-    if ids:
-        sync_farm_materials(db, farm.id, material_ids=ids)
+    }
+    items = []
+    for code in codes:
+        m = by_code.get(code)
+        if not m:
+            continue
+        items.append(
+            {
+                "material_id": m.id,
+                "notes": None,
+                "frequency": None,
+                "last_applied_at": None,
+                "is_last_fertilizer": code == last_fertilizer_code,
+                "is_last_pesticide": code == last_pesticide_code,
+            }
+        )
+    if items:
+        sync_farm_materials(db, farm.id, items=items)
 
 
 def seed_ticket(
@@ -654,6 +676,8 @@ def seed_farmer_farm(db, owner: User) -> Farm:
         db,
         farm,
         ["fert_map", "fert_kno3", "fert_can", "pp_fungicide", "pp_insecticide", "pp_acaricide"],
+        last_fertilizer_code="fert_kno3",
+        last_pesticide_code="pp_fungicide",
     )
     # Product seasons: past leafy + pepper, current tomato (solanaceae → suggest cereal/legume after harvest)
     _ensure_crop_season(

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { AppShell } from "@/components/app/AppShell";
+import { FarmMaterialsPanel } from "@/components/app/FarmMaterialsPanel";
 import { FarmSelector, setSelectedFarmId } from "@/components/app/FarmSelector";
 import {
   api,
@@ -232,7 +233,8 @@ export default function HubPage() {
       )}
 
       {tab === "settings" && hub && (
-        <div className="grid gap-4 lg:grid-cols-2">
+        <div className="space-y-4">
+          <div className="grid gap-4 lg:grid-cols-2">
           <form className="app-surface space-y-3 p-4" onSubmit={saveProfile}>
             <p className="font-semibold">Profil</p>
             <label className="block text-sm">
@@ -327,6 +329,12 @@ export default function HubPage() {
               Arazi detayına dön
             </Link>
           </div>
+          </div>
+          <FarmMaterialsPanel
+            farmId={farmId}
+            initialUses={farm?.material_uses}
+            onSaved={setFarm}
+          />
         </div>
       )}
     </AppShell>
