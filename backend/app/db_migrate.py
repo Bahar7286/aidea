@@ -69,6 +69,7 @@ def _ensure_sqlite() -> None:
             "calibration_offset": "ALTER TABLE devices ADD COLUMN calibration_offset FLOAT DEFAULT 0",
             "sampling_minutes": "ALTER TABLE devices ADD COLUMN sampling_minutes INTEGER DEFAULT 15",
             "notes": "ALTER TABLE devices ADD COLUMN notes TEXT",
+            "capabilities": "ALTER TABLE devices ADD COLUMN capabilities TEXT",
         }
         for col, sql in device_alters.items():
             if device_cols and col not in device_cols:
@@ -120,6 +121,17 @@ def _ensure_sqlite() -> None:
                 conn.execute(
                     text("ALTER TABLE users ADD COLUMN last_login_at DATETIME")
                 )
+            if "subscription_plan" not in user_cols:
+                conn.execute(
+                    text(
+                        "ALTER TABLE users ADD COLUMN subscription_plan VARCHAR(40) DEFAULT 'free'"
+                    )
+                )
+                conn.execute(
+                    text(
+                        "UPDATE users SET subscription_plan = 'free' WHERE subscription_plan IS NULL"
+                    )
+                )
 
         try:
             reading_cols = {
@@ -150,4 +162,14 @@ def _ensure_postgres() -> None:
         )
         conn.execute(
             text("ALTER TABLE farms ADD COLUMN IF NOT EXISTS longitude DOUBLE PRECISION")
+        )
+        conn.execute(
+            text(
+                "ALTER TABLE devices ADD COLUMN IF NOT EXISTS capabilities TEXT"
+            )
+        )
+        conn.execute(
+            text(
+                "ALTER TABLE users ADD COLUMN IF NOT EXISTS subscription_plan VARCHAR(40) DEFAULT 'free'"
+            )
         )

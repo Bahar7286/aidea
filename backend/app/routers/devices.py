@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+import json
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
@@ -26,6 +27,35 @@ from app.validation import compute_data_confidence
 router = APIRouter(tags=["devices-iot"])
 
 CALIBRATION_DUE_DAYS = 90
+ALLOWED_CAPABILITIES = {
+    "soil_moisture",
+    "soil_temperature",
+    "air_temperature",
+    "air_humidity",
+    "ec",
+    "ph",
+    "rainfall",
+    "flow",
+}
+
+
+def _capabilities_to_json(caps: list[str] | None) -> str | None:
+    if not caps:
+        return None
+    cleaned = sorted({c.strip() for c in caps if c and c.strip() in ALLOWED_CAPABILITIES})
+    return json.dumps(cleaned, ensure_ascii=False) if cleaned else None
+
+
+def _parse_capabilities(raw: str | None) -> list[str]:
+    if not raw:
+        return []
+    try:
+        data = json.loads(raw)
+        if isinstance(data, list):
+            return [str(x) for x in data]
+    except (json.JSONDecodeError, TypeError):
+        pass
+    return [p.strip() for p in raw.split(",") if p.strip()]
 
 
 def _calibration_due(device: Device) -> bool:
@@ -45,11 +75,31 @@ def _last_moisture(db: Session, device_id: int) -> float | None:
 
 
 def _device_out(db: Session, device: Device) -> DeviceOut:
-    data = DeviceOut.model_validate(device)
-    data.last_moisture = _last_moisture(db, device.id)
-    data.calibration_due = _calibration_due(device)
-    data.source_label = "simulation"
-    return data
+    return DeviceOut(
+        id=device.id,
+        farm_id=device.farm_id,
+        device_name=device.device_name,
+        device_type=device.device_type,
+        connection_status=device.connection_status,
+        last_data_time=device.last_data_time,
+        serial_number=device.serial_number,
+        zone_id=device.zone_id,
+        region_name=device.region_name,
+        depth_cm=device.depth_cm,
+        connection_type=device.connection_type,
+        battery_percent=device.battery_percent,
+        signal_dbm=device.signal_dbm,
+        firmware_version=device.firmware_version,
+        installed_at=device.installed_at,
+        last_calibration_at=device.last_calibration_at,
+        calibration_offset=device.calibration_offset,
+        sampling_minutes=device.sampling_minutes,
+        notes=device.notes,
+        capabilities=_parse_capabilities(getattr(device, "capabilities", None)),
+        last_moisture=_last_moisture(db, device.id),
+        calibration_due=_calibration_due(device),
+        source_label="simulation",
+    )
 
 
 def _normalize_status(raw: str | None) -> str:
@@ -103,6 +153,7 @@ def create_device(
         calibration_offset=0.0,
         sampling_minutes=payload.sampling_minutes or 15,
         notes=payload.notes,
+        capabilities=_capabilities_to_json(payload.capabilities),
         last_data_time=None,
     )
     db.add(device)
@@ -164,6 +215,8 @@ def update_device(
         data["connection_status"] = _normalize_status(data["connection_status"])
     if "connection_type" in data and data["connection_type"]:
         data["connection_type"] = data["connection_type"].lower()
+    if "capabilities" in data:
+        data["capabilities"] = _capabilities_to_json(data["capabilities"])
     for key, value in data.items():
         setattr(device, key, value)
     db.commit()

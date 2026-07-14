@@ -80,11 +80,11 @@ export default function IrrigationPage() {
   }, [status?.running?.id, farmId]);
 
   async function startSession() {
+    setConfirmOpen(false);
     setBusy(true);
     setError("");
     try {
       await api.startIrrigation(farmId, duration, true);
-      setConfirmOpen(false);
       await load();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Başlatılamadı");
@@ -107,6 +107,7 @@ export default function IrrigationPage() {
   }
 
   async function instantComplete() {
+    setConfirmOpen(false);
     setBusy(true);
     setError("");
     try {
@@ -116,7 +117,6 @@ export default function IrrigationPage() {
       setError(err instanceof Error ? err.message : "Sulama başarısız");
     } finally {
       setBusy(false);
-      setConfirmOpen(false);
     }
   }
 

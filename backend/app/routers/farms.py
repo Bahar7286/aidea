@@ -54,12 +54,24 @@ def create_farm(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    from app.location_utils import coords_for_farm
+
+    lat, lng = payload.latitude, payload.longitude
+    if lat is None or lng is None:
+        resolved_lat, resolved_lng, _src = coords_for_farm(
+            latitude=lat,
+            longitude=lng,
+            location=payload.location,
+            farm_name=payload.name,
+        )
+        lat, lng = resolved_lat, resolved_lng
+
     farm = Farm(
         user_id=current_user.id,
         name=payload.name,
         location=payload.location,
-        latitude=payload.latitude,
-        longitude=payload.longitude,
+        latitude=lat,
+        longitude=lng,
         area=payload.area,
         soil_type=payload.soil_type,
         irrigation_type=payload.irrigation_type,

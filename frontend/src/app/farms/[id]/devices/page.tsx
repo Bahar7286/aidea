@@ -49,6 +49,8 @@ export default function DevicesListPage() {
   );
   const [q, setQ] = useState("");
   const [error, setError] = useState("");
+  const [okMsg, setOkMsg] = useState("");
+  const [measuringId, setMeasuringId] = useState<number | null>(null);
 
   async function load() {
     const [f, list, sum] = await Promise.all([
@@ -62,6 +64,27 @@ export default function DevicesListPage() {
     setFarm(f);
     setDevices(list);
     setSummary(sum);
+  }
+
+  async function takeReading(deviceId: number) {
+    setMeasuringId(deviceId);
+    setError("");
+    setOkMsg("");
+    try {
+      const reading = await api.iotSimulateForDevice(
+        farmId,
+        deviceId,
+        "drought_risk",
+      );
+      await load();
+      setOkMsg(
+        `Ölçüm alındı (#${deviceId}) · nem %${reading.soil_moisture} · simulation`,
+      );
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Ölçüm alınamadı");
+    } finally {
+      setMeasuringId(null);
+    }
   }
 
   useEffect(() => {
@@ -97,6 +120,11 @@ export default function DevicesListPage() {
 
       {error && (
         <p className="mb-3 text-sm text-[var(--risk-critical)]">{error}</p>
+      )}
+      {okMsg && (
+        <p className="mb-3 rounded-xl bg-emerald-50 px-3 py-2 text-sm text-emerald-900">
+          {okMsg}
+        </p>
       )}
 
       <div className="mb-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
@@ -170,10 +198,10 @@ export default function DevicesListPage() {
           {/* Mobile cards */}
           <ul className="space-y-3 lg:hidden">
             {devices.map((d) => (
-              <li key={d.id}>
+              <li key={d.id} className="app-surface p-4">
                 <Link
                   href={`/farms/${farmId}/devices/${d.id}`}
-                  className="app-surface block p-4"
+                  className="block"
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div>
@@ -200,6 +228,14 @@ export default function DevicesListPage() {
                     <span>Sinyal: {d.signal_dbm ?? "—"} dBm</span>
                   </div>
                 </Link>
+                <button
+                  type="button"
+                  className="btn btn-secondary mt-3 w-full text-xs"
+                  disabled={measuringId === d.id}
+                  onClick={() => takeReading(d.id)}
+                >
+                  {measuringId === d.id ? "Ölçülüyor…" : "Ölçüm al"}
+                </button>
               </li>
             ))}
             {devices.length === 0 && (
@@ -258,12 +294,22 @@ export default function DevicesListPage() {
                       </span>
                     </td>
                     <td className="px-4 py-3 text-right">
-                      <Link
-                        href={`/farms/${farmId}/devices/${d.id}`}
-                        className="text-[var(--auth-forest)] hover:underline"
-                      >
-                        Detay
-                      </Link>
+                      <div className="flex justify-end gap-2">
+                        <button
+                          type="button"
+                          className="text-xs font-semibold text-[var(--auth-forest)] hover:underline"
+                          disabled={measuringId === d.id}
+                          onClick={() => takeReading(d.id)}
+                        >
+                          {measuringId === d.id ? "…" : "Ölçüm al"}
+                        </button>
+                        <Link
+                          href={`/farms/${farmId}/devices/${d.id}`}
+                          className="text-[var(--auth-forest)] hover:underline"
+                        >
+                          Detay
+                        </Link>
+                      </div>
                     </td>
                   </tr>
                 ))}

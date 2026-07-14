@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   CircleMarker,
   MapContainer,
@@ -42,7 +42,6 @@ function zonePolygons(
   areaDa: number,
 ): Array<{ zone: MapZone; positions: [number, number][] }> {
   const n = Math.max(1, zones.length);
-  // ~0.001 deg ≈ 111 m; scale with sqrt(area)
   const span = Math.min(0.018, Math.max(0.004, Math.sqrt(areaDa / 2) * 0.006));
   const halfH = span * 0.55;
   const slice = (span * 2) / n;
@@ -61,11 +60,13 @@ function zonePolygons(
   });
 }
 
-function Recenter({ lat, lng }: { lat: number; lng: number }) {
+function Recenter({ lat, lng, zoom }: { lat: number; lng: number; zoom: number }) {
   const map = useMap();
   useEffect(() => {
-    map.setView([lat, lng]);
-  }, [lat, lng, map]);
+    map.setView([lat, lng], zoom);
+    const t = window.setTimeout(() => map.invalidateSize(), 120);
+    return () => window.clearTimeout(t);
+  }, [lat, lng, zoom, map]);
   return null;
 }
 
@@ -78,7 +79,11 @@ export function FarmLeafletMap({
   interactive = true,
   className = "",
 }: FarmLeafletMapProps) {
+  const [ready, setReady] = useState(false);
   const area = Math.max(0.5, areaDa ?? 2);
+  const lat = Number.isFinite(latitude) ? latitude : 39.0;
+  const lng = Number.isFinite(longitude) ? longitude : 35.0;
+
   const polys = useMemo(() => {
     const displayZones =
       zones.length > 0
@@ -88,12 +93,13 @@ export function FarmLeafletMap({
             { name: "Bölge B", moisture: null },
             { name: "Bölge C", moisture: null },
           ];
-    return zonePolygons(latitude, longitude, displayZones, area);
-  }, [latitude, longitude, zones, area]);
+    return zonePolygons(lat, lng, displayZones, area);
+  }, [lat, lng, zones, area]);
 
   const zoom = area >= 8 ? 13 : area >= 3 ? 14 : 15;
 
   useEffect(() => {
+    setReady(true);
     // Fix default marker icons when bundling with Next
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -107,22 +113,35 @@ export function FarmLeafletMap({
     });
   }, []);
 
+  if (!ready) {
+    return (
+      <div
+        className={`flex items-center justify-center bg-emerald-950/10 text-sm text-[var(--auth-muted)] ${heightClass} ${className}`}
+      >
+        Harita hazırlanıyor…
+      </div>
+    );
+  }
+
   return (
-    <div className={`overflow-hidden ${heightClass} ${className}`}>
+    <div className={`relative overflow-hidden bg-slate-100 ${heightClass} ${className}`}>
       <MapContainer
-        center={[latitude, longitude]}
+        key={`${lat.toFixed(4)}-${lng.toFixed(4)}`}
+        center={[lat, lng]}
         zoom={zoom}
         className="h-full w-full"
+        style={{ height: "100%", width: "100%", minHeight: 240 }}
         scrollWheelZoom={interactive}
         dragging={interactive}
         doubleClickZoom={interactive}
         zoomControl={interactive}
         attributionControl
       >
-        <Recenter lat={latitude} lng={longitude} />
+        <Recenter lat={lat} lng={lng} zoom={zoom} />
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          maxZoom={19}
         />
         {polys.map(({ zone, positions }) => (
           <Polygon
@@ -132,7 +151,7 @@ export function FarmLeafletMap({
               color: "#ffffff",
               weight: 1.5,
               fillColor: moistureColor(zone.moisture),
-              fillOpacity: 0.72,
+              fillOpacity: 0.55,
             }}
           >
             <Popup>
@@ -143,9 +162,14 @@ export function FarmLeafletMap({
           </Polygon>
         ))}
         <CircleMarker
-          center={[latitude, longitude]}
+          center={[lat, lng]}
           radius={7}
-          pathOptions={{ color: "#ecfccb", fillColor: "#65a30d", fillOpacity: 1, weight: 2 }}
+          pathOptions={{
+            color: "#ecfccb",
+            fillColor: "#65a30d",
+            fillOpacity: 1,
+            weight: 2,
+          }}
         >
           <Popup>Arazi merkezi</Popup>
         </CircleMarker>

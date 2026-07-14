@@ -39,6 +39,7 @@ export default function AiDetailPage() {
 
   async function applyIrrigation() {
     if (!detail?.can_apply) return;
+    setConfirmOpen(false);
     setBusy(true);
     setError("");
     try {
@@ -46,7 +47,6 @@ export default function AiDetailPage() {
         farmId,
         detail.prediction.irrigation_duration ?? undefined,
       );
-      setConfirmOpen(false);
       router.push(`/farms/${farmId}/irrigation`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Sulama başlatılamadı");

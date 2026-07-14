@@ -317,6 +317,12 @@ export default function HubPage() {
               </li>
               <li>Sulama: yalnızca sanal (onay zorunlu)</li>
             </ul>
+            <Link
+              href="/subscription"
+              className="btn btn-primary min-h-11 w-full text-sm"
+            >
+              Abonelik planları
+            </Link>
             <Link href={`/farms/${farmId}`} className="btn btn-ghost min-h-11 text-sm">
               Arazi detayına dön
             </Link>

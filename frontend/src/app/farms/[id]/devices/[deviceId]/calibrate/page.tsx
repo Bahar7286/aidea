@@ -55,6 +55,7 @@ export default function CalibrateDevicePage() {
       );
       setRaw(String(reading.soil_moisture));
       await load();
+      setTested(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Ölçüm alınamadı");
     } finally {

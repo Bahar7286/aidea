@@ -24,6 +24,7 @@ export default function DeviceDetailPage() {
   const [detail, setDetail] = useState<DeviceDetail | null>(null);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [okMsg, setOkMsg] = useState("");
 
   async function load() {
     const [f, d] = await Promise.all([
@@ -43,9 +44,17 @@ export default function DeviceDetailPage() {
   async function runSim() {
     setBusy(true);
     setError("");
+    setOkMsg("");
     try {
-      await api.iotSimulateForDevice(farmId, deviceId, "drought_risk");
+      const reading = await api.iotSimulateForDevice(
+        farmId,
+        deviceId,
+        "drought_risk",
+      );
       await load();
+      setOkMsg(
+        `Ölçüm alındı · nem %${reading.soil_moisture} · kaynak: simulation`,
+      );
     } catch (err) {
       setError(err instanceof Error ? err.message : "Simülasyon başarısız");
     } finally {
@@ -88,6 +97,11 @@ export default function DeviceDetailPage() {
 
       {error && (
         <p className="mb-3 text-sm text-[var(--risk-critical)]">{error}</p>
+      )}
+      {okMsg && (
+        <p className="mb-3 rounded-xl bg-emerald-50 px-3 py-2 text-sm text-emerald-900">
+          {okMsg}
+        </p>
       )}
 
       {!d ? (
@@ -180,6 +194,12 @@ export default function DeviceDetailPage() {
                     ["Bağlantı", d.connection_type || "—"],
                     ["Bölge", d.region_name || "—"],
                     [
+                      "Ölçüm özellikleri",
+                      (d.capabilities || []).length
+                        ? d.capabilities!.join(", ")
+                        : "—",
+                    ],
+                    [
                       "Ofset",
                       d.calibration_offset != null
                         ? String(d.calibration_offset)
@@ -203,11 +223,11 @@ export default function DeviceDetailPage() {
             <div className="flex flex-wrap gap-2">
               <button
                 type="button"
-                className="btn btn-secondary text-sm"
+                className="btn btn-primary text-sm"
                 onClick={runSim}
                 disabled={busy}
               >
-                Simülasyon ölçümü
+                {busy ? "Ölçülüyor…" : "Ölçüm al"}
               </button>
               <button
                 type="button"
@@ -219,7 +239,7 @@ export default function DeviceDetailPage() {
               </button>
               <Link
                 href={`/farms/${farmId}/devices/${deviceId}/calibrate`}
-                className="btn btn-primary text-sm"
+                className="btn btn-secondary text-sm"
               >
                 Kurulum / kalibrasyon
               </Link>

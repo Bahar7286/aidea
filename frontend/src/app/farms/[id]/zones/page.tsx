@@ -4,8 +4,10 @@ import { FormEvent, useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { AppShell } from "@/components/app/AppShell";
-import { SchematicMap } from "@/components/app/SchematicMap";
+import { FarmMapPanel } from "@/components/app/FarmMapPanel";
 import { api, Farm, ManagementZone, SensorReading } from "@/lib/api";
+
+const QUICK_ZONES = ["Kuzey", "Orta", "Güney"];
 
 export default function ZonesPage() {
   const params = useParams();
@@ -14,7 +16,11 @@ export default function ZonesPage() {
   const [zones, setZones] = useState<ManagementZone[]>([]);
   const [reading, setReading] = useState<SensorReading | null>(null);
   const [selected, setSelected] = useState<number | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editNotes, setEditNotes] = useState("");
   const [error, setError] = useState("");
+  const [ok, setOk] = useState("");
+  const [busy, setBusy] = useState(false);
 
   const refresh = useCallback(async () => {
     const [f, z, r] = await Promise.all([
@@ -25,17 +31,27 @@ export default function ZonesPage() {
     setFarm(f);
     setZones(z);
     setReading(r[0] || null);
-    if (z[0] && selected == null) setSelected(z[0].id);
-  }, [farmId, selected]);
+    setSelected((prev) => {
+      if (prev != null && z.some((row) => row.id === prev)) return prev;
+      return z[0]?.id ?? null;
+    });
+  }, [farmId]);
 
   useEffect(() => {
     if (!farmId) return;
     refresh().catch((err) => setError(err.message));
   }, [farmId, refresh]);
 
+  useEffect(() => {
+    const z = zones.find((row) => row.id === selected);
+    setEditName(z?.name || "");
+    setEditNotes(z?.notes || "");
+  }, [selected, zones]);
+
   async function onCreate(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError("");
+    setOk("");
     const form = new FormData(e.currentTarget);
     const name = String(form.get("name") || "").trim();
     if (!name) return;
@@ -46,9 +62,63 @@ export default function ZonesPage() {
         notes: String(form.get("notes") || "") || undefined,
       });
       e.currentTarget.reset();
+      setOk(`"${name}" eklendi`);
       await refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Bölge eklenemedi.");
+    }
+  }
+
+  async function addQuick(name: string) {
+    setError("");
+    setOk("");
+    if (zones.some((z) => z.name.toLowerCase() === name.toLowerCase())) {
+      setError(`"${name}" zaten var.`);
+      return;
+    }
+    try {
+      await api.createZone({ farm_id: farmId, name });
+      setOk(`"${name}" eklendi`);
+      await refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Bölge eklenemedi.");
+    }
+  }
+
+  async function onSaveEdit(e: FormEvent) {
+    e.preventDefault();
+    if (selected == null) return;
+    setBusy(true);
+    setError("");
+    setOk("");
+    try {
+      await api.updateZone(selected, {
+        name: editName.trim(),
+        notes: editNotes.trim() || null,
+      });
+      setOk("Bölge güncellendi");
+      await refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Güncellenemedi.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function onDelete() {
+    if (selected == null) return;
+    if (!confirm("Bu bölge silinsin mi?")) return;
+    setBusy(true);
+    setError("");
+    try {
+      await api.deleteZone(selected);
+      setSelected(null);
+      setOk("Bölge silindi");
+      await refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Silinemedi.");
+    } finally {
+      setBusy(false);
     }
   }
 
@@ -67,24 +137,48 @@ export default function ZonesPage() {
         <Link href={`/farms/${farmId}`} className="btn btn-ghost text-sm">
           ← Arazi detayı
         </Link>
+        <Link href={`/farms/${farmId}/twin`} className="btn btn-ghost text-sm">
+          Dijital ikiz
+        </Link>
       </div>
 
       {error && <p className="mb-3 text-sm text-[var(--risk-critical)]">{error}</p>}
+      {ok && <p className="mb-3 text-sm text-emerald-800">{ok}</p>}
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <SchematicMap zones={mapZones.length ? mapZones : [{ name: "Bölge yok" }]} />
+        <FarmMapPanel
+          farm={farm}
+          zones={mapZones.length ? mapZones : [{ name: "Bölge yok", moisture: null }]}
+          areaDa={farm?.area}
+          sourceType={reading?.source_type || "simulation"}
+          title="Bölge haritası"
+          subtitle="OpenStreetMap · yönetim bölgeleri"
+          heightClass="h-72 sm:h-96"
+        />
 
         <div className="space-y-4">
           <form onSubmit={onCreate} className="app-surface space-y-3 p-4">
-            <h2 className="font-semibold">+ Bölge Ekle</h2>
+            <h2 className="font-semibold">+ Bölge ekle</h2>
             <p className="text-xs text-[var(--auth-muted)]">
-              Tek sensör tüm araziyi temsil etmez. Bölgeleri toprak, eğim veya sulama
-              hattına göre ayırın.
+              Tek sensör tüm araziyi temsil etmez. Kuzey / Orta / Güney ile başlayın veya
+              kendi adınızı verin.
             </p>
+            <div className="flex flex-wrap gap-2">
+              {QUICK_ZONES.map((name) => (
+                <button
+                  key={name}
+                  type="button"
+                  className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-900 ring-1 ring-emerald-200"
+                  onClick={() => addQuick(name)}
+                >
+                  {name}
+                </button>
+              ))}
+            </div>
             <input
               className="input"
               name="name"
-              placeholder="Örn. Kuzey"
+              placeholder="Örn. Batı sırt"
               required
             />
             <input className="input" name="notes" placeholder="Not (opsiyonel)" />
@@ -111,21 +205,45 @@ export default function ZonesPage() {
               </button>
             ))}
             {zones.length === 0 && (
-              <p className="text-sm text-[var(--auth-muted)]">Henüz bölge yok.</p>
+              <p className="text-sm text-[var(--auth-muted)]">
+                Henüz bölge yok. Kuzey / Orta / Güney ekleyin.
+              </p>
             )}
           </div>
 
           {selectedZone && (
-            <div className="app-surface space-y-2 p-4">
-              <h3 className="font-semibold">{selectedZone.name} detayı</h3>
-              <p className="text-sm text-[var(--auth-muted)]">
+            <form onSubmit={onSaveEdit} className="app-surface space-y-3 p-4">
+              <h3 className="font-semibold">Düzenle: {selectedZone.name}</h3>
+              <input
+                className="input"
+                value={editName}
+                onChange={(e) => setEditName(e.target.value)}
+                required
+              />
+              <input
+                className="input"
+                value={editNotes}
+                onChange={(e) => setEditNotes(e.target.value)}
+                placeholder="Not"
+              />
+              <p className="text-xs text-[var(--auth-muted)]">
                 Son nem (arazi geneli):{" "}
                 {reading ? `%${reading.soil_moisture}` : "veri yok"}
               </p>
-              <p className="text-xs text-[var(--auth-muted)]">
-                Bölgeye sensör atama P1 cihaz ekranında tamamlanacak.
-              </p>
-            </div>
+              <div className="flex flex-wrap gap-2">
+                <button className="btn btn-primary flex-1" disabled={busy}>
+                  {busy ? "…" : "Kaydet"}
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-secondary text-[var(--risk-critical)]"
+                  onClick={onDelete}
+                  disabled={busy}
+                >
+                  Sil
+                </button>
+              </div>
+            </form>
           )}
         </div>
       </div>

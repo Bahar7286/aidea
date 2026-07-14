@@ -16,6 +16,26 @@ const DEVICE_TYPES = [
   { id: "other", label: "Diğer", hint: "Genel" },
 ] as const;
 
+const CAPABILITIES = [
+  { id: "soil_moisture", label: "Toprak nemi" },
+  { id: "soil_temperature", label: "Toprak sıcaklığı" },
+  { id: "air_temperature", label: "Hava sıcaklığı" },
+  { id: "air_humidity", label: "Hava nemi" },
+  { id: "ec", label: "EC" },
+  { id: "ph", label: "pH" },
+  { id: "rainfall", label: "Yağış" },
+  { id: "flow", label: "Debi" },
+] as const;
+
+const DEFAULT_CAPS: Record<string, string[]> = {
+  soil_moisture: ["soil_moisture", "soil_temperature"],
+  weather: ["air_temperature", "air_humidity", "rainfall"],
+  ec: ["ec", "soil_moisture"],
+  flow: ["flow"],
+  field_node: ["soil_moisture", "soil_temperature", "air_humidity", "ec"],
+  other: ["soil_moisture"],
+};
+
 const DEPTHS = [10, 20, 40, 60] as const;
 const CONNECTIONS = [
   { id: "wifi", label: "Wi-Fi" },
@@ -31,6 +51,9 @@ export default function NewDevicePage() {
   const [zones, setZones] = useState<ManagementZone[]>([]);
   const [step, setStep] = useState(1);
   const [deviceType, setDeviceType] = useState<string>("soil_moisture");
+  const [capabilities, setCapabilities] = useState<string[]>(
+    DEFAULT_CAPS.soil_moisture,
+  );
   const [deviceName, setDeviceName] = useState("Toprak Nemi Sensörü");
   const [serial, setSerial] = useState("");
   const [zoneId, setZoneId] = useState<number | "">("");
@@ -77,6 +100,7 @@ export default function NewDevicePage() {
         depth_cm: depth,
         connection_type: connectionType,
         sampling_minutes: sampling,
+        capabilities,
       });
       if (testOk) {
         await api.testDevice(device.id);
@@ -144,6 +168,7 @@ export default function NewDevicePage() {
                     type="button"
                     onClick={() => {
                       setDeviceType(t.id);
+                      setCapabilities(DEFAULT_CAPS[t.id] || ["soil_moisture"]);
                       if (!deviceName || deviceName.startsWith("Toprak")) {
                         setDeviceName(t.label + " 01");
                       }
@@ -184,6 +209,41 @@ export default function NewDevicePage() {
                   onChange={(e) => setSerial(e.target.value)}
                   placeholder="SN-…"
                 />
+              </div>
+              <div>
+                <p className="label">Ölçüm özellikleri (çoklu seçim)</p>
+                <p className="mb-2 text-[11px] text-[var(--auth-muted)]">
+                  Cihazın ölçebildiği büyüklükleri işaretleyin.
+                </p>
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                  {CAPABILITIES.map((c) => {
+                    const on = capabilities.includes(c.id);
+                    return (
+                      <label
+                        key={c.id}
+                        className={`flex cursor-pointer items-center gap-2 rounded-xl border px-3 py-2 text-sm ${
+                          on
+                            ? "border-[var(--auth-forest)] bg-emerald-50"
+                            : "border-[var(--auth-border)] bg-white"
+                        }`}
+                      >
+                        <input
+                          type="checkbox"
+                          className="accent-[var(--auth-forest)]"
+                          checked={on}
+                          onChange={() => {
+                            setCapabilities((prev) =>
+                              on
+                                ? prev.filter((x) => x !== c.id)
+                                : [...prev, c.id],
+                            );
+                          }}
+                        />
+                        {c.label}
+                      </label>
+                    );
+                  })}
+                </div>
               </div>
             </>
           )}
@@ -306,6 +366,19 @@ export default function NewDevicePage() {
                 <li>
                   Tür:{" "}
                   <strong className="text-[var(--auth-ink)]">{deviceType}</strong>
+                </li>
+                <li>
+                  Özellikler:{" "}
+                  <strong className="text-[var(--auth-ink)]">
+                    {capabilities.length
+                      ? capabilities
+                          .map(
+                            (id) =>
+                              CAPABILITIES.find((c) => c.id === id)?.label || id,
+                          )
+                          .join(", ")
+                      : "yok"}
+                  </strong>
                 </li>
                 <li>
                   Derinlik:{" "}

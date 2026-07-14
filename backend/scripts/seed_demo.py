@@ -433,8 +433,9 @@ def seed_farmer_farm(db, owner: User) -> Farm:
         growth_stage="ciceklenme",
         planting_days_ago=45,
     )
-    z1 = _ensure_zone(db, farm, "Bölge 1", "Kuzey sera hücreleri")
-    z2 = _ensure_zone(db, farm, "Bölge 2", "Güney sera hücreleri")
+    z1 = _ensure_zone(db, farm, "Kuzey", "Kuzey sera hücreleri")
+    z2 = _ensure_zone(db, farm, "Orta", "Orta sera hücreleri")
+    z3 = _ensure_zone(db, farm, "Güney", "Güney sera hücreleri")
     d1 = _ensure_device(
         db,
         farm,
@@ -451,7 +452,7 @@ def seed_farmer_farm(db, owner: User) -> Farm:
         device_name="Toprak Nemi Sensörü 02",
         serial_number="SN-DEMO-CFT-002",
         region_name="Güney",
-        zone=z2,
+        zone=z3,
         battery=76.0,
         signal_dbm=-71,
         connection_type="lora",
@@ -514,7 +515,7 @@ def seed_farmer_farm(db, owner: User) -> Farm:
                 "ec": 1.8,
                 "last_irrigation_hours_ago": 44.0,
                 "data_confidence": 82.0,
-                "zone_id": z2.id,
+                "zone_id": z3.id,
                 "device_id": d2.id,
             },
             {

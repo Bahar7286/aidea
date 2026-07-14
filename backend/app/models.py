@@ -56,6 +56,8 @@ class User(Base):
     role: Mapped[str] = mapped_column(String(50), default="farmer")
     email_verified: Mapped[bool] = mapped_column(Boolean, default=False)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    # Soft paywall tier: free | pro (demo billing, no payment gateway)
+    subscription_plan: Mapped[str] = mapped_column(String(40), default="free")
     last_login_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
@@ -260,6 +262,8 @@ class Device(Base):
     calibration_offset: Mapped[float | None] = mapped_column(Float, nullable=True, default=0.0)
     sampling_minutes: Mapped[int | None] = mapped_column(Integer, nullable=True, default=15)
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # JSON list of capability codes, e.g. ["soil_moisture","ec","air_humidity"]
+    capabilities: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     farm = relationship("Farm", back_populates="devices")
 

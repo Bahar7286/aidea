@@ -8,6 +8,7 @@ export type User = {
   role: string;
   email_verified?: boolean;
   is_active?: boolean;
+  subscription_plan?: string;
   last_login_at?: string | null;
 };
 
@@ -514,6 +515,7 @@ export type Device = {
   calibration_offset?: number | null;
   sampling_minutes?: number | null;
   notes?: string | null;
+  capabilities?: string[];
   last_moisture?: number | null;
   calibration_due?: boolean;
   source_label?: string;
@@ -988,6 +990,29 @@ export const api = {
         scenario,
         device_id: deviceId,
       }),
+    }),
+  billingPlans: () =>
+    request<{
+      current_plan: string;
+      plans: Array<{
+        id: string;
+        name: string;
+        price_try: number;
+        price_label?: string;
+        farms_limit: number;
+        devices_limit: number | null;
+        features: string[];
+        current?: boolean;
+      }>;
+      farms_used: number;
+      devices_used: number;
+      ai_queries_used: number;
+      note: string;
+    }>("/billing/plans"),
+  selectBillingPlan: (planId: string) =>
+    request<User>("/billing/plan", {
+      method: "PUT",
+      body: JSON.stringify({ plan_id: planId }),
     }),
   adminBootstrap: () =>
     request<User>("/admin/bootstrap", { method: "POST" }),

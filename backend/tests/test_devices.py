@@ -96,6 +96,7 @@ def test_device_lifecycle_summary_calibrate():
             "depth_cm": 20,
             "connection_type": "lora",
             "sampling_minutes": 15,
+            "capabilities": ["soil_moisture", "soil_temperature", "ec"],
         },
     )
     assert create.status_code == 201, create.text
@@ -104,7 +105,28 @@ def test_device_lifecycle_summary_calibrate():
     assert device["connection_type"] == "lora"
     assert device["calibration_due"] is True
     assert device["source_label"] == "simulation"
+    assert "soil_moisture" in device["capabilities"]
+    assert "ec" in device["capabilities"]
     device_id = device["id"]
+
+    # Ölçüm al / simulate for device
+    sim = client.post(
+        "/iot/simulate",
+        headers=headers,
+        json={
+            "farm_id": farm_id,
+            "scenario": "drought_risk",
+            "device_id": device_id,
+        },
+    )
+    assert sim.status_code == 201, sim.text
+    assert sim.json()["source_type"] == "simulation"
+    assert sim.json()["device_id"] == device_id
+    assert sim.json()["soil_moisture"] is not None
+
+    detail_after = client.get(f"/devices/detail/{device_id}", headers=headers)
+    assert detail_after.status_code == 200
+    assert detail_after.json()["device"]["last_moisture"] is not None
 
     summary = client.get(f"/devices/{farm_id}/summary", headers=headers)
     assert summary.status_code == 200, summary.text

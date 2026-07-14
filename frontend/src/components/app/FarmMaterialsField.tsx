@@ -25,39 +25,57 @@ type Props = {
 };
 
 export function FarmMaterialsField({ value, onChange }: Props) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(true);
   const [catalog, setCatalog] = useState<AgroMaterial[]>([]);
   const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!open || catalog.length) return;
+    let cancelled = false;
     setLoading(true);
     api
       .listAgroMaterials()
-      .then(setCatalog)
-      .catch((err) => setError(err instanceof Error ? err.message : "Katalog yüklenemedi"))
-      .finally(() => setLoading(false));
-  }, [open, catalog.length]);
+      .then((rows) => {
+        if (!cancelled) setCatalog(rows);
+      })
+      .catch((err) => {
+        if (!cancelled) {
+          setError(err instanceof Error ? err.message : "Katalog yüklenemedi");
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
-  const selected = new Set(value.map((v) => v.material_id));
+  const selected = new Set(value.map((v) => Number(v.material_id)));
 
   function toggle(id: number) {
-    if (selected.has(id)) {
-      onChange(value.filter((v) => v.material_id !== id));
+    const nid = Number(id);
+    if (selected.has(nid)) {
+      onChange(value.filter((v) => Number(v.material_id) !== nid));
       return;
     }
-    onChange([...value, { material_id: id, frequency: null, notes: null }]);
+    onChange([...value, { material_id: nid, frequency: null, notes: null }]);
   }
 
   function patch(id: number, patchVal: Partial<MaterialSelection>) {
+    const nid = Number(id);
     onChange(
-      value.map((v) => (v.material_id === id ? { ...v, ...patchVal } : v))
+      value.map((v) =>
+        Number(v.material_id) === nid ? { ...v, ...patchVal } : v,
+      ),
     );
   }
 
   const fertilizers = catalog.filter((c) => c.kind === "fertilizer");
   const pps = catalog.filter((c) => c.kind === "plant_protection");
+  const selectedLabels = catalog
+    .filter((c) => selected.has(Number(c.id)))
+    .map((c) => c.name_tr);
 
   return (
     <div className="rounded-lg border border-[var(--auth-border)] bg-[var(--auth-bg)]/40">
@@ -73,8 +91,29 @@ export function FarmMaterialsField({ value, onChange }: Props) {
         </span>
         <span className="text-[var(--auth-muted)]">{open ? "−" : "+"}</span>
       </button>
+      {value.length > 0 && !open && (
+        <div className="flex flex-wrap gap-1 border-t border-[var(--auth-border)] px-3 py-2">
+          {selectedLabels.length > 0
+            ? selectedLabels.map((label) => (
+                <span
+                  key={label}
+                  className="rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-medium text-emerald-900"
+                >
+                  {label}
+                </span>
+              ))
+            : (
+                <span className="text-[11px] text-[var(--auth-muted)]">
+                  {value.length} sınıf seçili — açmak için +
+                </span>
+              )}
+        </div>
+      )}
       {open && (
-        <div className="space-y-3 border-t border-[var(--auth-border)] px-3 py-3">
+        <div
+          className="space-y-3 border-t border-[var(--auth-border)] px-3 py-3"
+          onClick={(e) => e.stopPropagation()}
+        >
           <p className="text-xs text-[var(--auth-muted)]">
             Eğitim amaçlı referans katalogdur. Ne kullandığınız kaydedilir; AI nem / EC /
             sulama yorumunda kullanır. Gübre veya ilaç reçetesi yazılmaz.
@@ -82,6 +121,11 @@ export function FarmMaterialsField({ value, onChange }: Props) {
           {error && <p className="text-xs text-[var(--risk-critical)]">{error}</p>}
           {loading && (
             <p className="text-xs text-[var(--auth-muted)]">Katalog yükleniyor…</p>
+          )}
+          {!loading && catalog.length === 0 && !error && (
+            <p className="text-xs text-[var(--auth-muted)]">
+              Katalog boş. API bağlantısını kontrol edin.
+            </p>
           )}
           {!loading && catalog.length > 0 && (
             <>
@@ -94,7 +138,7 @@ export function FarmMaterialsField({ value, onChange }: Props) {
                 onPatch={patch}
               />
               <Group
-                title="Bitki koruma sınıfları"
+                title="Bitki koruma (ilaç) sınıfları"
                 items={pps}
                 selected={selected}
                 value={value}
@@ -131,8 +175,9 @@ function Group({
       </p>
       <ul className="space-y-2">
         {items.map((m) => {
-          const on = selected.has(m.id);
-          const row = value.find((v) => v.material_id === m.id);
+          const mid = Number(m.id);
+          const on = selected.has(mid);
+          const row = value.find((v) => Number(v.material_id) === mid);
           return (
             <li key={m.id} className="rounded-md border border-[var(--auth-border)]/80 p-2">
               <label className="flex cursor-pointer items-start gap-2 text-sm">
@@ -140,7 +185,11 @@ function Group({
                   type="checkbox"
                   className="mt-1 size-4 accent-[var(--auth-forest)]"
                   checked={on}
-                  onChange={() => onToggle(m.id)}
+                  onClick={(e) => e.stopPropagation()}
+                  onChange={(e) => {
+                    e.stopPropagation();
+                    onToggle(mid);
+                  }}
                 />
                 <span>
                   <span className="font-medium">{m.name_tr}</span>
@@ -157,8 +206,9 @@ function Group({
                   <select
                     className="input text-xs"
                     value={row?.frequency || ""}
+                    onClick={(e) => e.stopPropagation()}
                     onChange={(e) =>
-                      onPatch(m.id, { frequency: e.target.value || null })
+                      onPatch(mid, { frequency: e.target.value || null })
                     }
                   >
                     {FREQ.map((f) => (
@@ -171,7 +221,8 @@ function Group({
                     className="input text-xs"
                     placeholder="Not (opsiyonel)"
                     value={row?.notes || ""}
-                    onChange={(e) => onPatch(m.id, { notes: e.target.value || null })}
+                    onClick={(e) => e.stopPropagation()}
+                    onChange={(e) => onPatch(mid, { notes: e.target.value || null })}
                   />
                 </div>
               )}

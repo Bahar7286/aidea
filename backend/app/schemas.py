@@ -36,6 +36,7 @@ class UserOut(BaseModel):
     role: str
     email_verified: bool = False
     is_active: bool = True
+    subscription_plan: str = "free"
     last_login_at: datetime | None = None
     created_at: datetime | None = None
 
@@ -215,6 +216,7 @@ class SensorReadingOut(BaseModel):
     id: int
     farm_id: int
     zone_id: int | None = None
+    device_id: int | None = None
     source_type: str
     timestamp: datetime
     soil_moisture: float
@@ -392,6 +394,7 @@ class DeviceCreate(BaseModel):
     sampling_minutes: int | None = Field(default=15, ge=1, le=1440)
     notes: str | None = None
     api_key: str | None = None
+    capabilities: list[str] | None = None
 
 
 class DeviceUpdate(BaseModel):
@@ -405,6 +408,7 @@ class DeviceUpdate(BaseModel):
     connection_status: str | None = Field(default=None, max_length=40)
     sampling_minutes: int | None = Field(default=None, ge=1, le=1440)
     notes: str | None = None
+    capabilities: list[str] | None = None
 
 
 class DeviceOut(BaseModel):
@@ -427,6 +431,7 @@ class DeviceOut(BaseModel):
     calibration_offset: float | None = None
     sampling_minutes: int | None = None
     notes: str | None = None
+    capabilities: list[str] = []
     last_moisture: float | None = None
     calibration_due: bool = False
     source_label: str = "simulation"

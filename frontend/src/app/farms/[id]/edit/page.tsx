@@ -9,7 +9,7 @@ import {
   FarmMaterialsField,
   MaterialSelection,
 } from "@/components/app/FarmMaterialsField";
-import { SchematicMap } from "@/components/app/SchematicMap";
+import { FarmMapPanel } from "@/components/app/FarmMapPanel";
 import { setSelectedFarmId } from "@/components/app/FarmSelector";
 import { api, Farm } from "@/lib/api";
 
@@ -214,13 +214,21 @@ export default function EditFarmPage() {
           </div>
         </div>
 
-        <SchematicMap
-          areaDa={area ? Number(area) : farm.area}
+        <FarmMapPanel
+          farm={{
+            ...farm,
+            area: area ? Number(area) : farm.area,
+          }}
           zones={[
             { name: "Kuzey", moisture: 30 },
             { name: "Orta", moisture: 27 },
             { name: "Güney", moisture: 23 },
           ]}
+          areaDa={area ? Number(area) : farm.area}
+          sourceType="simulation"
+          title="Arazi önizleme"
+          heightClass="h-72"
+          interactive={false}
         />
       </form>
     </AppShell>
