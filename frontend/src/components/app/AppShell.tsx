@@ -264,12 +264,21 @@ export function AppShell({ children, title, farmName }: Props) {
         <div className="mt-4 border-t border-[var(--auth-border)] pt-3 text-xs">
           <p className="font-semibold">{user?.name || "…"}</p>
           <p className="text-[var(--auth-muted)]">{user?.role}</p>
-          <Link
-            href="/admin"
-            className="mt-2 block text-[var(--auth-forest)] hover:underline"
+          {user?.role === "admin" && (
+            <Link
+              href="/admin"
+              className="mt-2 block text-[var(--auth-forest)] hover:underline"
+            >
+              Yönetim paneli
+            </Link>
+          )}
+          <button
+            type="button"
+            onClick={logout}
+            className="mt-2 text-left text-[var(--auth-muted)] hover:text-[var(--auth-ink)] hover:underline"
           >
-            Yönetim paneli
-          </Link>
+            Çıkış
+          </button>
         </div>
       </aside>
 

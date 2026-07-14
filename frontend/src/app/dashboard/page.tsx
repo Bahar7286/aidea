@@ -178,16 +178,23 @@ export default function DashboardPage() {
             />
           </div>
 
-          <div className="grid gap-4 lg:grid-cols-2">
-            <FarmMapPanel
-              farm={overview?.farm}
-              zones={zones}
-              areaDa={overview?.farm.area}
-              sourceType={reading?.source_type || "simulation"}
-              title="Arazi haritası"
-              subtitle="OpenStreetMap + nem bölgeler"
-            />
-            <div className="space-y-4">
+          <div className="grid gap-4 lg:grid-cols-5">
+            <div className="lg:col-span-3">
+              <FarmMapPanel
+                farm={overview?.farm}
+                zones={zones}
+                areaDa={overview?.farm.area}
+                sourceType={reading?.source_type || "simulation"}
+                title="Arazi haritası"
+                subtitle={
+                  overview?.farm.location
+                    ? `${overview.farm.location} · OpenStreetMap + nem`
+                    : "OpenStreetMap + nem bölgeler"
+                }
+                heightClass="h-72 sm:h-80 lg:h-[22rem]"
+              />
+            </div>
+            <div className="space-y-4 lg:col-span-2">
               <MoistureSparkline
                 points={[
                   moisture,
@@ -196,7 +203,7 @@ export default function DashboardPage() {
                   prediction?.moisture_72h,
                 ]}
               />
-              <div className="app-surface grid gap-3 p-4 sm:grid-cols-3">
+              <div className="app-surface grid gap-3 p-4 sm:grid-cols-3 lg:grid-cols-1 xl:grid-cols-3">
                 <div>
                   <p className="text-xs text-[var(--auth-muted)]">Hava (Open-Meteo)</p>
                   <p className="text-lg font-bold">
@@ -222,7 +229,9 @@ export default function DashboardPage() {
                   </p>
                 </div>
                 {weather?.error && (
-                  <p className="sm:col-span-3 text-xs text-amber-800">{weather.error}</p>
+                  <p className="sm:col-span-3 text-xs text-amber-800 xl:col-span-3">
+                    {weather.error}
+                  </p>
                 )}
               </div>
             </div>

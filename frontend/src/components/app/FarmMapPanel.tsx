@@ -46,6 +46,15 @@ export function resolveFarmCoords(farm?: {
   if (loc.includes("konya") || loc.includes("karap")) {
     return { lat: 37.7147, lng: 33.5506, source: "hint" };
   }
+  if (loc.includes("ısparta") || loc.includes("isparta") || loc.includes("yalvaç") || loc.includes("yalvac")) {
+    return { lat: 38.2956, lng: 31.1778, source: "hint" };
+  }
+  if (loc.includes("gelendost")) {
+    return { lat: 38.1210, lng: 31.0150, source: "hint" };
+  }
+  if (loc.includes("ankara") || loc.includes("gölbaşı") || loc.includes("golbasi")) {
+    return { lat: 39.7900, lng: 32.8050, source: "hint" };
+  }
   return { ...TURKEY_CENTER, source: "turkey" };
 }
 

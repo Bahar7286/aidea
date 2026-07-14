@@ -25,32 +25,19 @@ def should_seed_demo_users() -> bool:
 
 
 def seed_demo_users(db: Session | None = None) -> list[str]:
-    """Upsert the four demo accounts (+ Domates Serası for farmer)."""
-    # Prefer importing the same logic as scripts.seed_demo
+    """Upsert four demo accounts with distinct persona farm data."""
     scripts_dir = Path(__file__).resolve().parents[1] / "scripts"
     if str(scripts_dir.parent) not in sys.path:
         sys.path.insert(0, str(scripts_dir.parent))
 
-    from scripts.seed_demo import (  # type: ignore
-        DEMO_USERS,
-        seed_farmer_farm,
-        seed_light_farm,
-        seed_ticket,
-        upsert_user,
-    )
+    from scripts.seed_demo import run_seed  # type: ignore
 
     own = db is None
     session = db or SessionLocal()
     emails: list[str] = []
     try:
-        for spec in DEMO_USERS:
-            user = upsert_user(session, spec)
-            if spec.get("seed_farm"):
-                farm = seed_farmer_farm(session, user)
-                seed_ticket(session, user, farm)
-            if spec.get("seed_farm_light"):
-                seed_light_farm(session, user)
-            emails.append(user.email)
+        result = run_seed(session)
+        emails = list(result.keys())
         session.commit()
         logger.info("Demo users upserted: %s", ", ".join(emails))
     except Exception:

@@ -348,14 +348,15 @@ MVP şu probleme odaklanmaktadır:
 - [ ] Backend deploy
 - [ ] Veritabanı prod bağlantısı
 - [ ] Ortam değişkenleri
-- [x] Demo kullanıcı hesabı (`DEMO_USERS.md` + `scripts.seed_demo`)
+- [x] Demo kullanıcı hesabı (`DEMO_USERS.md` + `scripts.seed_demo`) — 4 persona **ayırt edici** arazi/veri; startup + `/auth/demo-login` aynı seeder
+- [x] Landing hero (harita/sera görseli, marka yeşili) + dashboard harita/grafik alanı
 - [ ] HTTPS
 - [ ] Hata logları
 - [ ] Canlı URL
 - [ ] Yedekleme
 - [ ] Son canlı test
 
-**Durum:** Başlanmadı
+**Durum:** Demo seed + landing polish canlıya alma yolunda; prod env `SEED_DEMO_USERS=1` + redeploy ile yenilenir.
 
 ---
 

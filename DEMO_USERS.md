@@ -1,15 +1,17 @@
 # Demo kullanıcıları
 
-MVP sunumu için **4 giriş** yeterlidir. Ortak şifre: `Secret12`
+MVP sunumu için **4 giriş**. Ortak şifre: `Secret12`
 
-| # | E-posta | Rol | Ne için |
-|---|---------|-----|---------|
-| 1 | `admin@agritwin.demo` | admin | `/admin` yönetim paneli (A01–A08) |
-| 2 | `ciftci@agritwin.demo` | farmer | Ana dikey dilim: Domates Serası, AI, senaryo, sanal sulama |
-| 3 | `ziraat@agritwin.demo` | agronomist | İkinci hesap / danışman arazisi; admin kullanıcı listesi |
-| 4 | `kooperatif@agritwin.demo` | cooperative | Kooperatif rolü; destek talebi vb. |
+Her hesap **farklı, gerçekçi** arazi verisi taşır (klon değil).
 
-`consultant` rolü UI’da seçilebilir ama ayrı demo hesabı şart değil (çiftçi/ziraat ile aynı app shell).
+| # | E-posta | Rol | Arazi / veri özeti |
+|---|---------|-----|-------------------|
+| 1 | `admin@agritwin.demo` | admin | `/admin` paneli + küçük **Yönetim Demo Arazisi** (Ankara). Kullanıcı/filo/destek ticket’ları dolu. |
+| 2 | `ciftci@agritwin.demo` | farmer | **Domates Serası** (Antalya/Serik, tinli, damla). Kuruyan nem serisi → sulama ihtiyacı; 2 cihaz, lab onaylı, sera malzemeleri. |
+| 3 | `ziraat@agritwin.demo` | agronomist | **Karapınar Buğday Tarlası** (~18.5 da, kumlu, yağmurlama). Orta nem; **manuel + simülasyon** karışımı; açık alan gübre sınıfları. |
+| 4 | `kooperatif@agritwin.demo` | cooperative | **2 arazi:** Yeşilova Merkez (biber, 3 zon farklı nem) + Kuzey Bahçe (elma, yüksek nem). Bölgesel sulama hikâyesi. |
+
+Simülasyon okumaları API/UI’da `source_type: simulation` ile etiketlenir. Sanal sulama kullanıcı onayı olmadan başlamaz.
 
 ## Oluşturma
 
@@ -19,7 +21,10 @@ cd backend
 .venv\Scripts\python.exe -m scripts.seed_demo
 ```
 
-**Canlı (Render / Supabase):** Environment’a `SEED_DEMO_USERS=1` ekleyin (veya boş bırakın — Postgres’te otomatik upsert). API ayağa kalkınca 4 demo kullanıcı + Domates Serası yazılır. Alternatif: `POST /auth/demo-login` (login sayfasındaki demo butonları).
+**Canlı (Render / Supabase):**
+
+1. Environment: `SEED_DEMO_USERS=1` (veya boş bırakın — Postgres’te startup’ta otomatik upsert).
+2. **Manual Deploy** (restart) veya login sayfasındaki demo butonları → `POST /auth/demo-login` aynı zengin seed’i çalıştırır.
 
 Hesaplar e-posta doğrulanmış gelir; doğrulama kodu gerekmez.
 
@@ -27,4 +32,5 @@ Hesaplar e-posta doğrulanmış gelir; doğrulama kodu gerekmez.
 
 1. **Admin** → KPI, kullanıcılar, cihaz filosu, destek  
 2. **Çiftçi** → Domates Serası → canlı sensör / AI / senaryo / sulama (onay şart)  
-3. (İsteğe bağlı) **Ziraat** veya **Kooperatif** → rol değişimi
+3. **Ziraat** → kumlu tarla, orta nem, manuel+sim kaynak rozetleri  
+4. **Kooperatif** → arazi seçici ile 2 farm / zon nem farkı  

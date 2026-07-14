@@ -30,6 +30,10 @@ export default function LoginPage() {
     if (saved) setEmail(saved);
   }, []);
 
+  function homeFor(role?: string) {
+    return role === "admin" ? "/admin" : "/dashboard";
+  }
+
   async function loginWith(creds: { email: string; password: string }, remember = false) {
     setError("");
     setLoading(true);
@@ -41,7 +45,7 @@ export default function LoginPage() {
       } else {
         localStorage.removeItem("agritwin_remember");
       }
-      router.push("/dashboard");
+      router.push(homeFor(data.user?.role));
       router.refresh();
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Giriş başarısız.";
@@ -78,7 +82,7 @@ export default function LoginPage() {
       });
       setSession(data.access_token, data.user);
       localStorage.removeItem("agritwin_remember");
-      router.push("/dashboard");
+      router.push(homeFor(data.user?.role));
       router.refresh();
     } catch (err) {
       try {
@@ -165,7 +169,7 @@ export default function LoginPage() {
           </button>
         </form>
 
-        <div className="space-y-2">
+        <div id="demo" className="scroll-mt-8 space-y-2">
           <p className="text-xs font-semibold uppercase tracking-wide text-[var(--auth-muted)]">
             Demo hesaplar · {DEMO_PASSWORD}
           </p>
