@@ -30,13 +30,16 @@ export default function LabNewPage() {
   const [fileSize, setFileSize] = useState<number | null>(null);
   const [uploadMsg, setUploadMsg] = useState("");
   const [extractionMode, setExtractionMode] = useState<
-    "parsed" | "simulated" | null
+    "parsed" | "ai" | "simulated" | "rejected" | "needs_manual" | null
   >(null);
   const [dragOver, setDragOver] = useState(false);
   const [paramsList, setParamsList] = useState<LabParameter[]>([]);
   const [extractionConfidence, setExtractionConfidence] = useState<number | null>(
     null,
   );
+  const [soilAccepted, setSoilAccepted] = useState(false);
+  const [rejectionReason, setRejectionReason] = useState("");
+  const [soilGateScore, setSoilGateScore] = useState<number | null>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -59,6 +62,7 @@ export default function LabNewPage() {
     }
     setLoading(true);
     setError("");
+    setRejectionReason("");
     try {
       const res = await api.uploadLabFile(farmId, file);
       setFileName(res.file_name);
@@ -66,11 +70,31 @@ export default function LabNewPage() {
       setFileSize(res.size_bytes ?? file.size);
       setUploadMsg(res.message);
       setExtractionMode(res.extraction_mode);
+      setSoilGateScore(res.soil_gate_score ?? null);
+      const ok = !!res.accepted && (res.parameters?.length ?? 0) >= 2;
+      setSoilAccepted(ok);
+      if (!ok) {
+        setParamsList([]);
+        setExtractionConfidence(null);
+        setRejectionReason(
+          res.rejection_reason ||
+            res.message ||
+            "Bu dosya tarımsal toprak analiz raporu kabul edilmedi.",
+        );
+        setError(
+          res.rejection_reason ||
+            res.message ||
+            "Toprak laboratuvar raporu değil — doğrulama adımına geçilemez.",
+        );
+        setStep(1);
+        return;
+      }
       setParamsList(res.parameters || []);
       setExtractionConfidence(res.extraction_confidence ?? null);
       setPathMode("report");
       setStep(2);
     } catch (err) {
+      setSoilAccepted(false);
       setError(err instanceof Error ? err.message : "Yükleme başarısız");
     } finally {
       setLoading(false);
@@ -85,6 +109,9 @@ export default function LabNewPage() {
     setExtractionConfidence(null);
     setExtractionMode(null);
     setUploadMsg("");
+    setSoilAccepted(true);
+    setRejectionReason("");
+    setSoilGateScore(null);
     setParamsList([
       { parameter_code: "ph", value: 0, unit: "pH", extracted_auto: false },
       { parameter_code: "ec", value: 0, unit: "dS/m", extracted_auto: false },
@@ -111,6 +138,13 @@ export default function LabNewPage() {
     }
     if (pathMode === "report" && !fileName) {
       setError("Rapor yolu için önce dosya yükleyin.");
+      return;
+    }
+    if (pathMode === "report" && !soilAccepted) {
+      setError(
+        rejectionReason ||
+          "Dosya toprak laboratuvar kabul kapısından geçmedi. Doğrulama yok.",
+      );
       return;
     }
     const usable = paramsList.filter(
@@ -164,7 +198,8 @@ export default function LabNewPage() {
   }
 
   const steps = ["Yükle", "Bilgiler", "Doğrula", "Tamamla"];
-  const canContinueReport = !!fileName && paramsList.length > 0;
+  const canContinueReport =
+    !!fileName && soilAccepted && paramsList.length >= 2;
 
   return (
     <AppShell title="Laboratuvar Raporu Yükle" farmName={farm?.name}>
@@ -252,9 +287,10 @@ export default function LabNewPage() {
                       Rapor dosyanızı sürükleyin veya seçin
                     </p>
                     <p className="mt-1 text-xs text-[var(--auth-muted)]">
-                      PDF, JPG, PNG, Excel, CSV veya TXT (maks. 20 MB). Dosya
-                      yüklenmeden analiz oluşturulmaz. Metin varsa çıkarılır;
-                      yoksa yalnızca dosya sonrası simüle çıkarım.
+                      Yalnızca tarımsal toprak analiz raporları kabul edilir
+                      (pH, organik madde, P2O5, K2O, EC…). PDF, CSV veya TXT
+                      (maks. 20 MB). Fatura / rastgele PDF reddedilir; sahte
+                      analiz üretilmez. OpenRouter anahtarı varsa AI ayrıştırır.
                     </p>
                     <label className="btn btn-primary mt-4 inline-flex cursor-pointer text-sm">
                       <FileUp className="h-4 w-4" aria-hidden />
@@ -286,6 +322,17 @@ export default function LabNewPage() {
                       </div>
                     )}
                   </div>
+                  {rejectionReason && (
+                    <div className="rounded-xl bg-red-50 px-3 py-3 text-sm text-red-900 ring-1 ring-red-200">
+                      <p className="font-semibold">Rapor kabul edilmedi</p>
+                      <p className="mt-1 text-xs">{rejectionReason}</p>
+                      {soilGateScore != null && (
+                        <p className="mt-1 text-xs text-red-800/80">
+                          Toprak benzerlik skoru: {soilGateScore}/100
+                        </p>
+                      )}
+                    </div>
+                  )}
                   <button
                     type="button"
                     className="btn btn-primary"
@@ -296,9 +343,9 @@ export default function LabNewPage() {
                       ? "…"
                       : canContinueReport
                         ? "Bilgilere devam →"
-                        : "Önce dosya seçin"}
+                        : "Önce geçerli toprak raporu yükleyin"}
                   </button>
-                  {uploadMsg && (
+                  {uploadMsg && !rejectionReason && (
                     <p className="text-xs text-[var(--auth-muted)]">{uploadMsg}</p>
                   )}
                 </>
@@ -315,8 +362,15 @@ export default function LabNewPage() {
                 <p className="rounded-xl bg-emerald-50 px-3 py-2 text-xs text-emerald-900">
                   Yüklenen dosya: {originalName || fileName}
                   {extractionMode
-                    ? ` · çıkarım: ${extractionMode === "parsed" ? "metin" : "simüle"}`
+                    ? ` · çıkarım: ${
+                        extractionMode === "ai"
+                          ? "OpenRouter AI"
+                          : extractionMode === "parsed"
+                            ? "metin"
+                            : extractionMode
+                      }`
                     : ""}
+                  {soilGateScore != null ? ` · skor ${soilGateScore}` : ""}
                 </p>
               )}
               <div className="grid gap-3 sm:grid-cols-2">
@@ -454,9 +508,11 @@ export default function LabNewPage() {
               {extractionConfidence != null && pathMode === "report" && (
                 <p className="rounded-xl bg-sky-50 px-3 py-2 text-xs text-sky-900">
                   Çıkarım güveni: %{extractionConfidence}
-                  {extractionMode === "simulated"
-                    ? " — simüle (gerçek OCR değil)"
-                    : " — metin heuristiği; otomatik doğru sayılmaz"}
+                  {extractionMode === "ai"
+                    ? " — OpenRouter AI (şema doğrulamalı); otomatik kayıt yok"
+                    : extractionMode === "simulated"
+                      ? " — simüle (kullanımdan kaldırıldı)"
+                      : " — metin heuristiği; otomatik doğru sayılmaz"}
                   .
                 </p>
               )}
@@ -476,7 +532,9 @@ export default function LabNewPage() {
                   type="submit"
                   className="btn btn-primary"
                   disabled={
-                    loading || (pathMode === "report" && !fileName) || !labName.trim()
+                    loading ||
+                    (pathMode === "report" && (!fileName || !soilAccepted)) ||
+                    !labName.trim()
                   }
                 >
                   {loading ? "…" : "Kaydet ve doğrula →"}
@@ -491,12 +549,13 @@ export default function LabNewPage() {
             Yükleme rehberi
           </p>
           <p>
-            Rapor yolu: gerçek dosya zorunlu. Metin çıkarımı denenir; başarısızsa
-            simüle değerler yalnızca dosya yüklendikten sonra gelir.
+            Rapor yolu: yalnızca tarımsal toprak laboratuvar raporu. pH, OM,
+            P/K zorunlu benzerlik; fatura ve rastgele PDF reddedilir.
           </p>
           <p>
-            Manuel yol: değerleri kendiniz yazarsınız. Onaysız kayıt doğrulanmış
-            sayılmaz. Lab verisi sürekli IoT nem ölçümünün yerini tutmaz.
+            OPENROUTER_API_KEY varsa metin AI ile JSON parametrelere ayrıştırılır;
+            yoksa heuristik. Onaysız kayıt doğrulanmış sayılmaz. Lab verisi IoT
+            nem ölçümünün yerini tutmaz.
           </p>
         </aside>
       </form>

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import io
 import re
+from dataclasses import dataclass, field
 from pathlib import Path
 
 PARAM_LABELS = {
@@ -18,6 +19,8 @@ PARAM_LABELS = {
     "potassium": "Potasyum",
     "n": "Azot",
     "nitrogen": "Azot",
+    "ca": "Kalsiyum",
+    "calcium": "Kalsiyum",
     "zn": "Çinko",
     "zinc": "Çinko",
     "fe": "Demir",
@@ -44,6 +47,8 @@ DEFAULT_UNITS = {
     "potassium": "ppm",
     "n": "ppm",
     "nitrogen": "ppm",
+    "ca": "ppm",
+    "calcium": "ppm",
     "zn": "ppm",
     "zinc": "ppm",
     "fe": "ppm",
@@ -56,6 +61,67 @@ DEFAULT_UNITS = {
     "sodium": "ppm",
 }
 
+# TR soil lab core + optional parameter set (acceptance / UI allow-list)
+SOIL_CORE_CODES = frozenset({"ph", "om", "p", "k"})
+SOIL_OPTIONAL_CODES = frozenset(
+    {"ec", "lime", "n", "ca", "mg", "zn", "fe", "b", "na", "texture", "saturation"}
+)
+SOIL_EXPECTED_CODES = SOIL_CORE_CODES | SOIL_OPTIONAL_CODES
+
+SOIL_POSITIVE_KEYWORDS: tuple[str, ...] = (
+    "toprak analiz",
+    "toprak analizi",
+    "toprak laboratuvar",
+    "toprak laboratuar",
+    "analiz raporu",
+    "laboratuvar raporu",
+    "laboratuar raporu",
+    "soil analysis",
+    "soil report",
+    "organik madde",
+    "organic matter",
+    "elektriksel iletkenlik",
+    "p2o5",
+    "p₂o₅",
+    "k2o",
+    "k₂o",
+    "caco3",
+    "caco₃",
+    "yarayışlı",
+    "yarayisli",
+    "numune derin",
+    "bünye",
+    "bunye",
+    "tekstür",
+    "tekstur",
+    "tarım laboratuvar",
+    "tarim laboratuvar",
+    "il toprak",
+    "il tarım",
+    "toprak ph",
+    "saturasyon",
+)
+
+SOIL_NEGATIVE_KEYWORDS: tuple[str, ...] = (
+    "fatura",
+    "invoice",
+    "receipt",
+    "ödeme bildirimi",
+    "kredi kartı",
+    "weather forecast",
+    "hava durumu",
+    "meteoroloji",
+    "hastane",
+    "kan tahlili",
+    "kan sonucu",
+    "eczane",
+    "irsaliye",
+    "sipariş no",
+    "order confirmation",
+)
+
+MIN_SOIL_GATE_SCORE = 40.0
+
 
 def normalize_code(code: str) -> str:
     c = code.lower().strip()
@@ -64,6 +130,7 @@ def normalize_code(code: str) -> str:
         "phosphorus": "p",
         "potassium": "k",
         "nitrogen": "n",
+        "calcium": "ca",
         "zinc": "zn",
         "iron": "fe",
         "boron": "b",
@@ -74,6 +141,122 @@ def normalize_code(code: str) -> str:
         "k2o": "k",
     }
     return aliases.get(c, c)
+
+
+@dataclass
+class SoilGateResult:
+    accepted: bool
+    score: float
+    message: str
+    matched_keywords: list[str] = field(default_factory=list)
+    matched_params: list[str] = field(default_factory=list)
+
+
+def score_soil_document(text: str, parsed_codes: set[str] | None = None) -> SoilGateResult:
+    """Score whether extracted text looks like a TR farm soil laboratory report."""
+    raw = (text or "").strip()
+    low = raw.lower()
+    codes = {normalize_code(c) for c in (parsed_codes or set()) if c}
+
+    if not raw:
+        return SoilGateResult(
+            accepted=False,
+            score=0.0,
+            message=(
+                "Belgeden okunabilir metin çıkarılamadı. "
+                "Tarımsal toprak analiz raporu (PDF metin/CSV/TXT) yükleyin; "
+                "görüntü taraması için OCR henüz yok — manuel lab girişi kullanın."
+            ),
+        )
+
+    neg_hits = [k for k in SOIL_NEGATIVE_KEYWORDS if k in low]
+    pos_hits = [k for k in SOIL_POSITIVE_KEYWORDS if k in low]
+
+    # Loose single-token soil signals
+    loose_tokens = (
+        "toprak",
+        "laboratuvar",
+        "laboratuar",
+        "organik",
+        "fosfor",
+        "potasyum",
+        "kireç",
+        "kirec",
+        " ph",
+        "ph ",
+        "ph:",
+        " ec",
+        "ec:",
+        "ppm",
+        "ds/m",
+        "mg/kg",
+    )
+    loose_hits = [t.strip() for t in loose_tokens if t in low]
+
+    # Param signals from raw text (even before full parse)
+    param_text_hits: list[str] = []
+    for pattern, code in (
+        (r"(?:^|[^a-z])ph(?:$|[^a-z0-9])", "ph"),
+        (r"organik\s*madde|\bom\b", "om"),
+        (r"p2o5|fosfor|phosphorus", "p"),
+        (r"k2o|potasyum|potassium", "k"),
+        (r"elektriksel\s*iletkenlik|\bec\b", "ec"),
+        (r"kire[cç]|caco3", "lime"),
+        (r"\bazot\b|\bnitrogen\b", "n"),
+        (r"kalsiyum|\bca\b", "ca"),
+        (r"magnezyum|\bmg\b", "mg"),
+        (r"bünye|bunye|tekst[uü]r", "texture"),
+    ):
+        if re.search(pattern, low):
+            param_text_hits.append(code)
+
+    all_param_codes = codes | set(param_text_hits)
+    core_found = sorted(all_param_codes & SOIL_CORE_CODES)
+    opt_found = sorted(all_param_codes & SOIL_OPTIONAL_CODES)
+
+    score = 0.0
+    score += min(45.0, len(pos_hits) * 12.0)
+    score += min(15.0, len(loose_hits) * 3.0)
+    score += min(48.0, len(core_found) * 12.0)
+    score += min(15.0, len(opt_found) * 3.0)
+    score -= min(50.0, len(neg_hits) * 20.0)
+
+    # Strong reject: negative docs without soil core
+    if neg_hits and len(core_found) < 2 and len(pos_hits) == 0:
+        score = min(score, 15.0)
+
+    # Structured soil param sheet (CSV) with ≥2 core codes is enough
+    if len(core_found) >= 2 and not (neg_hits and len(pos_hits) == 0 and len(core_found) < 3):
+        score = max(score, 55.0)
+
+    accepted = score >= MIN_SOIL_GATE_SCORE and (
+        len(core_found) >= 2
+        or (len(pos_hits) >= 1 and len(core_found) >= 1)
+        or (len(pos_hits) >= 2 and len(all_param_codes & SOIL_EXPECTED_CODES) >= 2)
+    )
+
+    if accepted:
+        msg = (
+            f"Toprak laboratuvar raporu olarak kabul edildi (skor {score:.0f}/100). "
+            "Değerleri onaylamadan kayda geçmez."
+        )
+    else:
+        msg = (
+            "Bu dosya tarımsal toprak laboratuvar analiz raporu gibi görünmüyor. "
+            "Fatura, hava durumu veya rastgele PDF kabul edilmez; "
+            "sahte toprak analizi üretilmez. "
+            "Örnek parametreler: pH, organik madde, P2O5, K2O, EC, kireç."
+        )
+        if neg_hits:
+            msg += f" Tespit: alakasız içerik ({', '.join(neg_hits[:3])})."
+
+    return SoilGateResult(
+        accepted=accepted,
+        score=round(max(0.0, min(100.0, score)), 1),
+        message=msg,
+        matched_keywords=pos_hits[:8],
+        matched_params=sorted(all_param_codes & SOIL_EXPECTED_CODES),
+    )
 
 
 def param_label(code: str) -> str:
@@ -209,12 +392,14 @@ _TEXT_ALIASES: list[tuple[tuple[str, ...], str]] = [
     (("fosfor", "phosphorus", "p2o5", "p₂o₅", " yar. p", "p "), "p"),
     (("potasyum", "potassium", "k2o", "k₂o", " yar. k", "k "), "k"),
     (("azot", "nitrogen", " toplam n", "n "), "n"),
+    (("kalsiyum", "calcium", " ca ", "ca:", "ca="), "ca"),
     (("cinko", "çinko", "zinc", "zn"), "zn"),
     (("demir", "iron", "fe"), "fe"),
     (("boron", " bor ", "b "), "b"),
     (("magnezyum", "magnesium", "mg"), "mg"),
     (("sodyum", "sodium", "na"), "na"),
     (("saturasyon", "saturation", "isba", "işba"), "saturation"),
+    (("bünye", "bunye", "tekstür", "tekstur", "texture"), "texture"),
     ((" ph", "ph ", "ph:", "ph=", "toprak ph", "ph değeri"), "ph"),
 ]
 
@@ -252,10 +437,13 @@ def parse_parameters_from_text(text: str) -> list[dict]:
         parts = re.split(r"[,;\t|]+", line)
         if len(parts) >= 2:
             code = normalize_code(parts[0].strip())
-            if code in DEFAULT_UNITS or code in PARAM_LABELS:
+            if code in DEFAULT_UNITS or code in PARAM_LABELS or code in SOIL_EXPECTED_CODES:
                 val = _parse_number(parts[1])
                 if val is not None:
                     unit = parts[2].strip() if len(parts) >= 3 and parts[2].strip() else DEFAULT_UNITS.get(code, "")
+                    if code == "texture" and not unit:
+                        unit = parts[1].strip() or "bünye"
+                        val = 0.0
                     found[code] = {
                         "parameter_code": code,
                         "value": val,
@@ -280,6 +468,15 @@ def parse_parameters_from_text(text: str) -> list[dict]:
 
         code3 = _match_code(line)
         if not code3:
+            continue
+        if code3 == "texture":
+            found[code3] = {
+                "parameter_code": code3,
+                "value": 0.0,
+                "unit": line.split(":")[-1].strip()[:40] or "bünye",
+                "confidence_pct": 65.0,
+                "extracted_auto": True,
+            }
             continue
         nums = re.findall(r"[-+]?\d+(?:[.,]\d+)?", line)
         if not nums:
@@ -327,62 +524,90 @@ def _extract_pdf_text(content: bytes) -> str:
         return ""
 
 
+def extract_text_from_bytes(content: bytes, filename: str) -> str:
+    """Best-effort text extraction (no image OCR in MVP)."""
+    name = filename.lower()
+    ext = Path(name).suffix
+    if ext == ".pdf":
+        return _extract_pdf_text(content)
+    if ext in {".csv", ".txt", ".tsv"}:
+        return _decode_text_bytes(content)
+    if ext in {".xlsx", ".xls"}:
+        text = _decode_text_bytes(content)
+        if text.count("\x00") > 20:
+            return ""
+        return text
+    if ext in {".jpg", ".jpeg", ".png"}:
+        return ""
+    return _decode_text_bytes(content)
+
+
 def extract_from_file(
     content: bytes,
     filename: str,
     *,
-    allow_simulated_fallback: bool = True,
-) -> tuple[list[dict], float, str, str]:
+    allow_simulated_fallback: bool = False,
+    use_ai: bool = True,
+) -> tuple[list[dict], float, str, str, SoilGateResult]:
     """
     Extract lab parameters from an uploaded report file.
 
-    Returns (parameters, confidence, mode, message).
-    mode: "parsed" | "simulated"
-    Simulated fallback ONLY when a file was provided and text parse failed.
+    Returns (parameters, confidence, mode, message, soil_gate).
+    mode: "parsed" | "ai" | "rejected" | "needs_manual"
+    Never invents fake soil values for unrelated documents.
+    allow_simulated_fallback is kept for API compat but ignored (always False path).
     """
-    name = filename.lower()
-    ext = Path(name).suffix
-    text = ""
+    del allow_simulated_fallback  # deprecated — no fake soil analysis
+    text = extract_text_from_bytes(content, filename)
+    heuristic = parse_parameters_from_text(text) if text.strip() else []
+    codes = {normalize_code(p["parameter_code"]) for p in heuristic}
+    gate = score_soil_document(text, codes)
 
-    if ext == ".pdf":
-        text = _extract_pdf_text(content)
-    elif ext in {".csv", ".txt", ".tsv"}:
-        text = _decode_text_bytes(content)
-    elif ext in {".xlsx", ".xls"}:
-        # No spreadsheet parser in MVP — try as plain text if mostly ASCII
-        text = _decode_text_bytes(content)
-        if text.count("\x00") > 20:
-            text = ""
-    elif ext in {".jpg", ".jpeg", ".png"}:
-        text = ""  # No image OCR in MVP
-    else:
-        text = _decode_text_bytes(content)
+    if not gate.accepted:
+        return [], 0.0, "rejected", gate.message, gate
 
-    parsed = parse_parameters_from_text(text) if text.strip() else []
-    if len(parsed) >= 2:
-        avg = round(sum(p.get("confidence_pct") or 0 for p in parsed) / len(parsed), 1)
+    # Prefer AI structured parse when key present
+    if use_ai:
+        try:
+            from app.lab_ai import parse_soil_report_with_ai
+
+            ai_result = parse_soil_report_with_ai(text)
+        except Exception:
+            ai_result = None
+        if ai_result is not None:
+            rows, avg, ai_msg = ai_result
+            if not rows and "olmadığı" in ai_msg.lower():
+                # AI says not a soil report — override gate
+                reject = SoilGateResult(
+                    accepted=False,
+                    score=min(gate.score, 20.0),
+                    message=ai_msg,
+                    matched_keywords=gate.matched_keywords,
+                    matched_params=gate.matched_params,
+                )
+                return [], 0.0, "rejected", ai_msg, reject
+            if len(rows) >= 2:
+                return rows, avg, "ai", ai_msg, gate
+            if rows and len(heuristic) < 2:
+                return rows, avg, "ai", ai_msg, gate
+
+    if len(heuristic) >= 2:
+        avg = round(sum(p.get("confidence_pct") or 0 for p in heuristic) / len(heuristic), 1)
         return (
-            parsed,
+            heuristic,
             avg,
             "parsed",
             "Dosyadan metin çıkarıldı (heuristik). Gerçek OCR değildir — değerleri doğrulayın.",
+            gate,
         )
 
-    if not allow_simulated_fallback:
-        return [], 0.0, "parsed", "Dosyadan parametre okunamadı."
-
-    rows, avg = demo_extraction()
-    reason = (
-        "Görüntü/tarama veya boş PDF — metin çıkarılamadı."
-        if ext in {".jpg", ".jpeg", ".png"} or (ext == ".pdf" and not text.strip())
-        else "Dosyadan yeterli parametre okunamadı."
+    # Soil-like but unparseable (scan/image/empty values) — soft fail, no fake demo
+    soft = (
+        "Belge toprak analiz raporu gibi görünüyor ancak parametreler okunamadı. "
+        "Metin içeren PDF/CSV/TXT deneyin veya manuel lab girişi kullanın. "
+        "Sahte değer üretilmedi."
     )
-    return (
-        rows,
-        avg,
-        "simulated",
-        f"{reason} Simüle çıkarım (MVP) yalnızca yüklenen dosya sonrasında. Onay zorunlu.",
-    )
+    return [], 0.0, "needs_manual", soft, gate
 
 
 def compute_status(user_confirmed: bool, parameters: list) -> str:

@@ -48,7 +48,7 @@ AgriTwin AI, bu sorunu verileri tek platformda birleştirerek, sulama ihtiyacın
 - Auth: kayıt / doğrulama / giriş / demo-login (4 persona)
 - Arazi CRUD, bölgeler (zones), ürün bilgisi
 - Manuel veri + IoT simülasyonu + test dataset load
-- Laboratuvar: dosya zorunlu `lab_report` + manuel; birim + kullanıcı onayı
+- Laboratuvar: dosya zorunlu `lab_report` + toprak-lab kabul kapısı + manuel; birim + kullanıcı onayı; OpenRouter ile ayrıştırma/yorum (opsiyonel)
 - Gübre/ilaç **sınıf** kataloğu + farm association (reçete yok)
 - Ürün sezon geçmişi + sonraki ürün önerileri (rotasyon; reçete yok)
 - Cihaz yönetimi (liste / ekle / detay / kalibrasyon) + `/iot/ingest`

@@ -132,16 +132,24 @@ Olası birimler: `%`, `ppm`, `mg/kg`, `kg/da`, `dS/m`, `meq/100 g`
 MVP yaklaşımı:
 
 1. Kullanıcı raporu yükler.  
-2. Sistem metin çıkarmayı **dener** (opsiyonel OCR / PDF text).  
-3. Önerilen değerler forma yerleştirilir.  
-4. Kullanıcı **tüm değerleri kontrol eder**.  
-5. Kullanıcı onayından sonra kayıt yapılır.  
+2. **Toprak-lab kabul kapısı:** belge TR toprak laboratuvar raporu gibi mi?  
+   (anahtar kelimeler: toprak, analiz raporu, organik madde, pH, P2O5, K2O, EC, laboratuvar…;  
+   beklenen parametreler: pH, OM, P, K + isteğe bağlı EC, kireç, N, Ca, Mg, bünye…)  
+3. Alakasız dosya (fatura, hava PDF, rastgele belgeler) **reddedilir** — sahte toprak analizi üretilmez.  
+4. Metin çıkarımı denenir (heuristik). `OPENROUTER_API_KEY` varsa OpenRouter ile yapılandırılmış JSON ayrıştırma.  
+5. Önerilen değerler forma yerleştirilir.  
+6. Kullanıcı **tüm değerleri kontrol eder** ve onaylar.  
+7. Onay sonrası kural tabanlı yorum (+ isteğe bağlı OpenRouter anlatım). Gübre reçetesi yok.
 
-**Doğrudan otomatik kaydetme yasaktır.**
+**Doğrudan otomatik kaydetme yasaktır.**  
+**Dosyasız `lab_report` yolu yasaktır** (önceki düzeltme).
 
 UI uyarısı:
 
-> Belgeden çıkarılan değerleri kontrol edin.
+> Belgeden çıkarılan değerleri kontrol edin.  
+> Bu dosya tarımsal toprak laboratuvar analizi değilse kabul edilmez.
+
+Örnek kabul metni: `backend/ai/datasets/sample_soil_lab_report.txt`
 
 Raporlar farklı tasarım, birim, parametre adı ve tarama kalitesinde olabilir.
 

@@ -199,14 +199,16 @@ MVP şu probleme odaklanmaktadır:
 - [x] Lab rapor listesi
 - [x] Lab rapor güncelleme/silme API
 - [x] PDF/Excel dosya yükleme (saklama; gerçek OCR yok)
-- [x] Dosya zorunlu `lab_report` yolu + metin/CSV heuristik çıkarım; simüle yalnızca dosya sonrası
+- [x] Dosya zorunlu `lab_report` yolu + metin/CSV heuristik çıkarım; simüle sahte analiz kaldırıldı
+- [x] Toprak-lab kabul kapısı (fatura/alakasız PDF reddi; örnek `ai/datasets/sample_soil_lab_report.txt`)
+- [x] OpenRouter lab ayrıştırma + onay sonrası anlatım (`OPENROUTER_API_KEY`; yoksa heuristik)
 - [x] AI yorum yalnızca kullanıcı onayından sonra
-- [x] Lab UI F22–F25 + simüle çıkarım + kural tabanlı yorum
+- [x] Lab UI F22–F25 + kural tabanlı yorum (+ isteğe bağlı AI anlatım)
 - [x] Field Node ingest API (`POST /iot/ingest`)
 - [x] Çift derinlik nem alanları
 - [x] Cihaz güncelleme/silme API (`PUT/DELETE /devices/detail/{id}`)
 
-**Durum:** Lab/zone/device CRUD tamam; dosya zorunlu çıkarım + onay sonrası AI; simüle yalnızca dosya sonrası
+**Durum:** Lab/zone/device CRUD tamam; dosya zorunlu + toprak-gate + onay sonrası AI; alakasız dosyadan sahte analiz yok
 
 ---
 

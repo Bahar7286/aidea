@@ -717,10 +717,13 @@ class LabExtractDemoOut(BaseModel):
     parameters: list[LabParameterIn]
     extraction_confidence: float
     message: str
-    extraction_mode: Literal["parsed", "simulated"] = "simulated"
+    extraction_mode: Literal["parsed", "ai", "simulated", "rejected", "needs_manual"] = "parsed"
     file_name: str | None = None
     original_name: str | None = None
     size_bytes: int | None = None
+    accepted: bool = True
+    rejection_reason: str | None = None
+    soil_gate_score: float | None = None
 
 
 class LabUploadExtractOut(BaseModel):
@@ -729,8 +732,11 @@ class LabUploadExtractOut(BaseModel):
     size_bytes: int
     parameters: list[LabParameterIn]
     extraction_confidence: float
-    extraction_mode: Literal["parsed", "simulated"]
+    extraction_mode: Literal["parsed", "ai", "simulated", "rejected", "needs_manual"]
     message: str
+    accepted: bool = True
+    rejection_reason: str | None = None
+    soil_gate_score: float | None = None
 
 
 class IoTIngestMeasurement(BaseModel):

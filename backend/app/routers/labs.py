@@ -14,6 +14,7 @@ from app.lab_interpret import (
     interpret_report,
     normalize_code,
 )
+from app.lab_ai import enrich_lab_narrative
 from app.models import Device, LabParameter, LabReport, LabSourceType, ManagementZone, SensorReading, User
 from app.schemas import (
     LabConfirmRequest,
@@ -47,6 +48,8 @@ ALLOWED_LAB_CODES = {
     "potassium",
     "n",
     "nitrogen",
+    "ca",
+    "calcium",
     "zn",
     "zinc",
     "fe",
@@ -248,7 +251,7 @@ def lab_extract_demo(
             detail="Dosya bulunamadı. Önce rapor dosyası yükleyin; dosyasız simüle çıkarım yok.",
         )
     content = path.read_bytes()
-    rows, avg, mode, message = extract_from_file(content, safe_name, allow_simulated_fallback=True)
+    rows, avg, mode, message, gate = extract_from_file(content, safe_name)
     return LabExtractDemoOut(
         parameters=[LabParameterIn(**r) for r in rows],
         extraction_confidence=avg,
@@ -256,6 +259,9 @@ def lab_extract_demo(
         extraction_mode=mode,  # type: ignore[arg-type]
         file_name=safe_name,
         size_bytes=len(content),
+        accepted=gate.accepted and mode not in {"rejected"},
+        rejection_reason=None if (gate.accepted and mode != "rejected") else message,
+        soil_gate_score=gate.score,
     )
 
 
@@ -284,7 +290,17 @@ async def upload_lab_file(
     safe = f"{datetime.utcnow().strftime('%Y%m%d%H%M%S')}_{Path(name).name}"
     path = dest_dir / safe
     path.write_bytes(content)
-    rows, avg, mode, message = extract_from_file(content, name, allow_simulated_fallback=True)
+    rows, avg, mode, message, gate = extract_from_file(content, name)
+    accepted = gate.accepted and mode not in {"rejected"} and len(rows) >= 2
+    rejection = None
+    if mode == "rejected" or not gate.accepted:
+        rejection = message
+        accepted = False
+        rows = []
+        avg = 0.0
+    elif mode == "needs_manual":
+        accepted = False
+        rejection = message
     return LabUploadExtractOut(
         file_name=safe,
         original_name=name,
@@ -293,6 +309,9 @@ async def upload_lab_file(
         extraction_confidence=avg,
         extraction_mode=mode,  # type: ignore[arg-type]
         message=message,
+        accepted=accepted,
+        rejection_reason=rejection,
+        soil_gate_score=gate.score,
     )
 
 
@@ -334,6 +353,28 @@ def create_lab_report(
                 detail="Rapor dosyası sunucuda yok. Önce dosya yükleyin.",
             )
         file_name = safe
+        content = stored.read_bytes()
+        # Soil gate uses file content only — payload params cannot launder an invoice PDF
+        _rows, _avg, mode, message, gate = extract_from_file(
+            content, safe, use_ai=False
+        )
+        if not gate.accepted or mode == "rejected":
+            raise HTTPException(
+                status_code=400,
+                detail=message
+                or (
+                    "Bu dosya tarımsal toprak laboratuvar raporu değil. "
+                    "lab_report yolu kabul etmedi; manuel lab girişi kullanın."
+                ),
+            )
+        if not payload.parameters or len(payload.parameters) < 2:
+            raise HTTPException(
+                status_code=400,
+                detail=(
+                    "Toprak raporu için en az iki parametre (değer+birim) gerekli. "
+                    "Geçersiz belgeden sahte analiz oluşturulamaz."
+                ),
+            )
 
     _validate_params(payload.parameters)
     # Never silent-confirm: create is always a draft until /confirm
@@ -418,6 +459,13 @@ def get_lab_detail(
             "Temel parametreler kabul edilebilir görünüyor. "
             "IoT nem ölçümlerinin yerini almaz; sulama kararında destek kayıttır."
         )
+    enriched = enrich_lab_narrative(
+        parameters=params,
+        rule_summary=ai_summary,
+        insights=insights_raw,
+    )
+    if enriched:
+        ai_summary = enriched
     return LabDetailOut(
         report=_report_out(report),
         insights=[LabInsightOut(**i) for i in insights_raw],

@@ -47,10 +47,10 @@ Or set `SEED_DEMO_USERS=1` (Postgres’te boş bırakınca da startup upsert). C
 | Irrigation | `POST /irrigation/start|stop`, `GET /status|history/{farm_id}` (user approval + confidence ≥ 60) |
 | Devices / IoT | CRUD devices, calibrate, `POST /iot/simulate`, `POST /iot/ingest` |
 | Anomalies | `GET /anomalies/{farm_id}` |
-| Lab / zones | zones CRUD, lab upload (file required for `lab_report`), confirm, summary |
+| Lab / zones | zones CRUD, lab upload (file + soil-gate for `lab_report`), confirm, summary |
 | Admin | `/admin/overview|users|farms|devices|billing|tickets|analytics|settings` |
 
-Hybrid AI: rule engine is the safety floor; optional OpenRouter (`OPENROUTER_API_KEY`) enriches Turkish explanations only.
+Hybrid AI: rule engine is the safety floor; optional OpenRouter (`OPENROUTER_API_KEY`) enriches Turkish explanations and lab parse/narrative.
 
 ```bash
 pytest

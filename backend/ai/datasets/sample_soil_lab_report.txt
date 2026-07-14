@@ -1,0 +1,31 @@
+T.C. TARIM VE ORMAN BAKANLIĞI
+İL TARIM LABORATUVARI — TOPRAK ANALİZ RAPORU
+
+Laboratuvar : Antalya Toprak Analiz Laboratuvarı
+Rapor No    : TR-2026-08421
+Numune Tarihi: 12.03.2026
+Analiz Tarihi: 18.03.2026
+Numune derinliği: 0–20 cm
+Arazi / bölge: Domates Serası — A Parseli
+
+SONUÇLAR
+------------------------------------------------------------------------
+Parametre                         Sonuç          Birim
+------------------------------------------------------------------------
+Toprak pH (1:2.5)                 7.42           pH
+Elektriksel iletkenlik (EC)       1.28           dS/m
+Organik madde                     2.15           %
+Kireç (CaCO3)                     12.4           %
+Fosfor (P2O5)                     18.6           ppm
+Potasyum (K2O)                    245            ppm
+Azot (N)                          38             ppm
+Kalsiyum (Ca)                     3200           ppm
+Magnezyum (Mg)                    420            ppm
+Bünye / tekstür                   tınlı
+------------------------------------------------------------------------
+
+Not: Bu belge tarımsal toprak laboratuvar analiz sonucudur.
+Gübre reçetesi değildir; sulama ve nem kararlarına destek veri sağlar.
+
+Laboratuvar Müdürü
+İmza / kaşe

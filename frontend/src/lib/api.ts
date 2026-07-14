@@ -979,8 +979,11 @@ export const api = {
       parameters: LabParameter[];
       extraction_confidence: number;
       message: string;
-      extraction_mode: "parsed" | "simulated";
+      extraction_mode: "parsed" | "ai" | "simulated" | "rejected" | "needs_manual";
       file_name?: string;
+      accepted?: boolean;
+      rejection_reason?: string | null;
+      soil_gate_score?: number | null;
     }>(
       `/lab-reports/extract-demo?farm_id=${farmId}&file_name=${encodeURIComponent(fileName)}`,
     ),
@@ -1013,7 +1016,10 @@ export const api = {
       message: string;
       parameters: LabParameter[];
       extraction_confidence: number;
-      extraction_mode: "parsed" | "simulated";
+      extraction_mode: "parsed" | "ai" | "simulated" | "rejected" | "needs_manual";
+      accepted: boolean;
+      rejection_reason?: string | null;
+      soil_gate_score?: number | null;
     };
   },
   listDevices: (
