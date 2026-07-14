@@ -4,6 +4,7 @@ import { FormEvent, useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { AppShell } from "@/components/app/AppShell";
+import { CropHistoryPanel } from "@/components/app/CropHistoryPanel";
 import { setSelectedFarmId } from "@/components/app/FarmSelector";
 import {
   AnomalyReport,
@@ -674,6 +675,8 @@ export default function FarmDetailPage() {
           </p>
         )}
       </section>
+
+      <CropHistoryPanel farmId={farmId} />
 
       <section className="grid gap-6 lg:grid-cols-2">
         <div className="card space-y-3">

@@ -23,6 +23,8 @@ from app.materials_service import sync_farm_materials
 from app.models import (
     AgroMaterial,
     Crop,
+    CropHistory,
+    CropSeasonStatus,
     Device,
     Farm,
     FarmMaterialUse,
@@ -164,6 +166,65 @@ def _ensure_crop(
     if planting_days_ago is not None:
         crop.planting_date = datetime.utcnow() - timedelta(days=planting_days_ago)
     db.flush()
+
+
+def _ensure_crop_season(
+    db,
+    farm: Farm,
+    *,
+    crop_type: str,
+    planting_days_ago: int,
+    harvest_days_ago: int | None = None,
+    status: CropSeasonStatus = CropSeasonStatus.harvested,
+    yield_amount: float | None = None,
+    yield_unit: str | None = "kg/da",
+    notes: str | None = None,
+) -> CropHistory:
+    """Idempotent crop season by farm + crop_type + approximate planting window."""
+    plant_at = datetime.utcnow() - timedelta(days=planting_days_ago)
+    window_start = plant_at - timedelta(days=14)
+    window_end = plant_at + timedelta(days=14)
+    row = (
+        db.query(CropHistory)
+        .filter(
+            CropHistory.farm_id == farm.id,
+            CropHistory.crop_type == crop_type,
+            CropHistory.planting_date >= window_start,
+            CropHistory.planting_date <= window_end,
+        )
+        .first()
+    )
+    harvest_at = (
+        datetime.utcnow() - timedelta(days=harvest_days_ago)
+        if harvest_days_ago is not None
+        else None
+    )
+    if not row:
+        row = CropHistory(
+            farm_id=farm.id,
+            crop_type=crop_type,
+            planting_date=plant_at,
+            harvest_date=harvest_at if status == CropSeasonStatus.harvested else harvest_at,
+            status=status,
+            yield_amount=yield_amount,
+            yield_unit=yield_unit,
+            notes=notes,
+            source_type="manual",
+        )
+        db.add(row)
+    else:
+        row.status = status
+        row.planting_date = plant_at
+        row.harvest_date = harvest_at if status == CropSeasonStatus.harvested else None
+        if yield_amount is not None:
+            row.yield_amount = yield_amount
+        if yield_unit:
+            row.yield_unit = yield_unit
+        if notes:
+            row.notes = notes
+        row.source_type = "manual"
+    db.flush()
+    return row
 
 
 def _ensure_zone(db, farm: Farm, name: str, notes: str | None = None) -> ManagementZone:
@@ -594,6 +655,38 @@ def seed_farmer_farm(db, owner: User) -> Farm:
         farm,
         ["fert_map", "fert_kno3", "fert_can", "pp_fungicide", "pp_insecticide", "pp_acaricide"],
     )
+    # Product seasons: past leafy + pepper, current tomato (solanaceae → suggest cereal/legume after harvest)
+    _ensure_crop_season(
+        db,
+        farm,
+        crop_type="marul",
+        planting_days_ago=200,
+        harvest_days_ago=150,
+        status=CropSeasonStatus.harvested,
+        yield_amount=2800.0,
+        notes="Demo: önceki yapraklı sebze sezonu (manuel kayıt).",
+    )
+    _ensure_crop_season(
+        db,
+        farm,
+        crop_type="biber",
+        planting_days_ago=130,
+        harvest_days_ago=55,
+        status=CropSeasonStatus.harvested,
+        yield_amount=4200.0,
+        notes="Demo: hasat edilmiş biber; aynı aile rotasyonu notu için.",
+    )
+    _ensure_crop_season(
+        db,
+        farm,
+        crop_type="domates",
+        planting_days_ago=45,
+        harvest_days_ago=None,
+        status=CropSeasonStatus.growing,
+        yield_amount=None,
+        yield_unit=None,
+        notes="Demo: mevcut sera sezonu (manuel çiftlik kaydı).",
+    )
     return farm
 
 
@@ -791,6 +884,27 @@ def seed_agronomist_farm(db, owner: User) -> Farm:
         farm,
         ["fert_urea", "fert_dap", "fert_as", "fert_compost", "pp_fungicide"],
     )
+    # Open field: harvested maize + earlier legume — no growing history row so suggestions show
+    _ensure_crop_season(
+        db,
+        farm,
+        crop_type="fasulye",
+        planting_days_ago=280,
+        harvest_days_ago=210,
+        status=CropSeasonStatus.harvested,
+        yield_amount=220.0,
+        notes="Demo: eski baklagil sezonu.",
+    )
+    _ensure_crop_season(
+        db,
+        farm,
+        crop_type="misir",
+        planting_days_ago=180,
+        harvest_days_ago=45,
+        status=CropSeasonStatus.harvested,
+        yield_amount=850.0,
+        notes="Demo: son hasat mısır — rotasyon önerileri için (manuel kayıt).",
+    )
     return farm
 
 
@@ -962,6 +1076,27 @@ def seed_cooperative_farms(db, owner: User) -> list[Farm]:
         db,
         f1,
         ["fert_mkp", "fert_kno3", "fert_mgso4", "pp_insecticide", "pp_biological"],
+    )
+    _ensure_crop_season(
+        db,
+        f1,
+        crop_type="domates",
+        planting_days_ago=210,
+        harvest_days_ago=100,
+        status=CropSeasonStatus.harvested,
+        yield_amount=5100.0,
+        notes="Koop demo: önceki domates sezonu (solanaceae).",
+    )
+    _ensure_crop_season(
+        db,
+        f1,
+        crop_type="biber",
+        planting_days_ago=55,
+        harvest_days_ago=None,
+        status=CropSeasonStatus.growing,
+        yield_amount=None,
+        yield_unit=None,
+        notes="Koop demo: mevcut biber (aynı aile — hasat sonrası rotasyon).",
     )
     farms.append(f1)
 

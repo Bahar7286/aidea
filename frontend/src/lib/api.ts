@@ -178,6 +178,54 @@ export type Farm = {
   material_uses?: FarmMaterialUse[];
 };
 
+export type CropHistory = {
+  id: number;
+  farm_id: number;
+  crop_type: string;
+  planting_date: string;
+  harvest_date: string | null;
+  status: "growing" | "harvested";
+  yield_amount: number | null;
+  yield_unit: string | null;
+  notes: string | null;
+  source_type: string;
+  created_at: string;
+  days_since_planting?: number | null;
+  days_since_harvest?: number | null;
+  family?: string | null;
+};
+
+export type CropHistoryList = {
+  items: CropHistory[];
+  current_crop: CropHistory | null;
+  last_harvested: CropHistory | null;
+  days_since_harvest: number | null;
+  soil_condition_summary: string | null;
+};
+
+export type CropSuggestion = {
+  crop_type: string;
+  label_tr: string;
+  family: string;
+  score: number;
+  reasons: string[];
+  suitable_now: boolean;
+};
+
+export type CropSuggestions = {
+  farm_id: number;
+  suggestions: CropSuggestion[];
+  soil_condition: Record<string, unknown>;
+  days_since_harvest: number | null;
+  previous_crop: string | null;
+  previous_family: string | null;
+  current_crop: string | null;
+  fallow_ok: boolean;
+  explanation: string;
+  engine: string;
+  llm_enriched: boolean;
+};
+
 export type WeatherSnapshot = {
   provider: string;
   latitude: number;
@@ -727,6 +775,36 @@ export const api = {
   farmTwin: (id: number) => request<TwinView>(`/farms/${id}/twin`),
   dataSources: (id: number) =>
     request<DataSource[]>(`/farms/${id}/data-sources`),
+  listCropHistory: (farmId: number) =>
+    request<CropHistoryList>(`/farms/${farmId}/crop-history`),
+  createCropHistory: (
+    farmId: number,
+    body: {
+      crop_type: string;
+      planting_date: string;
+      harvest_date?: string | null;
+      status: "growing" | "harvested";
+      yield_amount?: number | null;
+      yield_unit?: string | null;
+      notes?: string | null;
+    },
+  ) =>
+    request<CropHistory>(`/farms/${farmId}/crop-history`, {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+  updateCropHistory: (
+    historyId: number,
+    body: Record<string, unknown>,
+  ) =>
+    request<CropHistory>(`/crop-history/${historyId}`, {
+      method: "PUT",
+      body: JSON.stringify(body),
+    }),
+  deleteCropHistory: (historyId: number) =>
+    request<null>(`/crop-history/${historyId}`, { method: "DELETE" }),
+  cropSuggestions: (farmId: number) =>
+    request<CropSuggestions>(`/farms/${farmId}/crop-suggestions`),
   createReading: (farmId: number, body: Record<string, unknown>) =>
     request<SensorReading>(`/sensor-readings/${farmId}`, {
       method: "POST",

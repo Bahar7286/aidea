@@ -128,3 +128,72 @@ def _call_openrouter(api_key: str, inp: RuleInput, result: RuleResult) -> str | 
         if banned in lower:
             return None
     return text[:900]
+
+
+def enrich_crop_suggestion_explanation(
+    *,
+    explanation: str,
+    context: dict[str, Any],
+) -> str | None:
+    """Rewrite next-crop explanation in Turkish when OpenRouter key is set.
+
+    Does not change suggestion list, scores, or suitability flags.
+    """
+    key = (settings.openrouter_api_key or "").strip()
+    if not key:
+        return None
+
+    try:
+        payload: dict[str, Any] = {
+            "model": settings.openrouter_model or DEFAULT_MODEL,
+            "temperature": 0.3,
+            "max_tokens": 280,
+            "messages": [
+                {
+                    "role": "system",
+                    "content": (
+                        "Sen AgriTwin AI ürün rotasyonu danışmanısın. Sadece Türkçe yaz. "
+                        "Kural motorunun önerdiği ürün listesini ve skorları değiştirme; "
+                        "yalnızca açıklama metnini sadeleştir. Gübre/ilaç reçetesi, doz, "
+                        "hastalık teşhisi veya verim garantisi yazma. 2-4 kısa cümle."
+                    ),
+                },
+                {
+                    "role": "user",
+                    "content": json.dumps(
+                        {
+                            "kural_aciklama": explanation,
+                            "baglam": context,
+                        },
+                        ensure_ascii=False,
+                    ),
+                },
+            ],
+        }
+        headers = {
+                        "Authorization": f"Bearer {key}",
+            "Content-Type": "application/json",
+            "HTTP-Referer": "https://aidea-three.vercel.app",
+            "X-Title": "AgriTwin AI",
+        }
+        with httpx.Client(timeout=18.0) as client:
+            resp = client.post(OPENROUTER_URL, headers=headers, json=payload)
+            resp.raise_for_status()
+            data = resp.json()
+        choices = data.get("choices") or []
+        if not choices:
+            return None
+        content = (choices[0].get("message") or {}).get("content")
+        if not isinstance(content, str):
+            return None
+        text = content.strip()
+        if len(text) < 20:
+            return None
+        lower = text.lower()
+        for banned in ("gübre reçete", "gubre reçete", "npk uygula", "azot doz"):
+            if banned in lower:
+                return None
+        return text[:900]
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("OpenRouter crop explanation failed: %s", exc)
+        return None

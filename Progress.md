@@ -73,6 +73,7 @@ MVP şu probleme odaklanmaktadır:
 - Tahmini su kullanımı ve tasarruf
 - Laboratuvar analizi (P1 — rapor/manuel, birimli; gübre reçetesi yok)
 - Arazi gübre/ilaç **sınıf** kataloğu + farm association (yorum bağlamı; reçete yok)
+- Ürün sezon geçmişi + kural tabanlı sonraki ürün önerileri (rotasyon; reçete yok)
 
 ### MVP dışı
 
@@ -146,6 +147,8 @@ MVP şu probleme odaklanmaktadır:
 - [x] Arazi silme (soft-delete `is_active=false` + UI)
 - [x] Ürün bilgisi ekleme
 - [x] Gelişim dönemi seçme
+- [x] Ürün sezon geçmişi (CropHistory CRUD + UI)
+- [x] Sonraki ürün önerileri (kural tabanlı rotasyon + isteğe bağlı LLM açıklama)
 
 **Durum:** Farm CRUD tamam (soft-delete + pasif filtre `include_inactive` + pasif arazi mutasyon 403). Zone/device/lab U/D + admin farm/device/ticket patch; auth `PATCH /me`. Sensör okuma geçmişi silinmez (bilinçli).
 

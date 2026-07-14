@@ -948,3 +948,78 @@ class AdminSettingsOut(BaseModel):
 
 class AdminSettingsUpdate(BaseModel):
     settings: dict[str, str]
+
+
+# --- Crop history / next-crop suggestions ---
+
+
+class CropHistoryCreate(BaseModel):
+    crop_type: str = Field(..., min_length=1, max_length=80)
+    planting_date: datetime
+    harvest_date: datetime | None = None
+    status: str = Field(default="growing", pattern="^(growing|harvested)$")
+    yield_amount: float | None = Field(default=None, ge=0)
+    yield_unit: str | None = Field(default=None, max_length=40)
+    notes: str | None = Field(default=None, max_length=2000)
+
+
+class CropHistoryUpdate(BaseModel):
+    crop_type: str | None = Field(default=None, min_length=1, max_length=80)
+    planting_date: datetime | None = None
+    harvest_date: datetime | None = None
+    status: str | None = Field(default=None, pattern="^(growing|harvested)$")
+    yield_amount: float | None = Field(default=None, ge=0)
+    yield_unit: str | None = Field(default=None, max_length=40)
+    notes: str | None = Field(default=None, max_length=2000)
+
+
+class CropHistoryOut(BaseModel):
+    id: int
+    farm_id: int
+    crop_type: str
+    planting_date: datetime
+    harvest_date: datetime | None
+    status: str
+    yield_amount: float | None
+    yield_unit: str | None
+    notes: str | None
+    source_type: str
+    created_at: datetime
+    days_since_planting: int | None = None
+    days_since_harvest: int | None = None
+    family: str | None = None
+
+    class Config:
+        from_attributes = True
+
+
+class CropHistoryListOut(BaseModel):
+    items: list[CropHistoryOut]
+    current_crop: CropHistoryOut | None = None
+    last_harvested: CropHistoryOut | None = None
+    days_since_harvest: int | None = None
+    soil_condition_summary: str | None = None
+
+
+class CropSuggestionItemOut(BaseModel):
+    crop_type: str
+    label_tr: str
+    family: str
+    score: float
+    reasons: list[str]
+    suitable_now: bool
+
+
+class CropSuggestionsOut(BaseModel):
+    farm_id: int
+    suggestions: list[CropSuggestionItemOut]
+    soil_condition: dict
+    days_since_harvest: int | None
+    previous_crop: str | None
+    previous_family: str | None
+    current_crop: str | None
+    fallow_ok: bool
+    explanation: str
+    engine: str = "rule"
+    llm_enriched: bool = False
+

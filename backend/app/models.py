@@ -45,6 +45,11 @@ class IrrigationStatus(str, enum.Enum):
     stopped = "stopped"
 
 
+class CropSeasonStatus(str, enum.Enum):
+    growing = "growing"
+    harvested = "harvested"
+
+
 class User(Base):
     __tablename__ = "users"
 
@@ -103,6 +108,9 @@ class Farm(Base):
     lab_reports = relationship("LabReport", back_populates="farm", cascade="all, delete-orphan")
     material_uses = relationship(
         "FarmMaterialUse", back_populates="farm", cascade="all, delete-orphan"
+    )
+    crop_histories = relationship(
+        "CropHistory", back_populates="farm", cascade="all, delete-orphan"
     )
 
 
@@ -174,6 +182,29 @@ class Crop(Base):
     growth_stage: Mapped[str | None] = mapped_column(String(80), nullable=True)
 
     farm = relationship("Farm", back_populates="crops")
+
+
+class CropHistory(Base):
+    """Past / current planting seasons for a farm (manual farm record)."""
+
+    __tablename__ = "crop_histories"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    farm_id: Mapped[int] = mapped_column(ForeignKey("farms.id"), nullable=False, index=True)
+    crop_type: Mapped[str] = mapped_column(String(80), nullable=False)
+    planting_date: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+    harvest_date: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
+    status: Mapped[CropSeasonStatus] = mapped_column(
+        Enum(CropSeasonStatus), nullable=False, default=CropSeasonStatus.growing
+    )
+    yield_amount: Mapped[float | None] = mapped_column(Float, nullable=True)
+    yield_unit: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # Farm record entered by user — not IoT/simulated sensor data
+    source_type: Mapped[str] = mapped_column(String(40), nullable=False, default="manual")
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+    farm = relationship("Farm", back_populates="crop_histories")
 
 
 class SensorReading(Base):

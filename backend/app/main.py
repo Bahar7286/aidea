@@ -11,6 +11,7 @@ from app.routers import (
     auth,
     agro_materials,
     billing,
+    crop_history,
     devices,
     farms,
     irrigation,
@@ -25,7 +26,7 @@ ensure_sqlite_columns()
 ensure_catalog_on_startup()
 maybe_seed_on_startup()
 
-app = FastAPI(title="AgriTwin AI API", version="0.5.5")
+app = FastAPI(title="AgriTwin AI API", version="0.5.6")
 
 origins = [o.strip() for o in settings.cors_origins.split(",") if o.strip()]
 app.add_middleware(
@@ -46,6 +47,7 @@ app.include_router(scenarios.router)
 app.include_router(irrigation.router)
 app.include_router(anomalies.router)
 app.include_router(labs.router)
+app.include_router(crop_history.router)
 app.include_router(recommendations.router)
 app.include_router(admin.router)
 
