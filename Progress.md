@@ -191,12 +191,14 @@ MVP şu probleme odaklanmaktadır:
 - [x] Lab rapor listesi
 - [x] Lab rapor güncelleme/silme API
 - [x] PDF/Excel dosya yükleme (saklama; gerçek OCR yok)
+- [x] Dosya zorunlu `lab_report` yolu + metin/CSV heuristik çıkarım; simüle yalnızca dosya sonrası
+- [x] AI yorum yalnızca kullanıcı onayından sonra
 - [x] Lab UI F22–F25 + simüle çıkarım + kural tabanlı yorum
 - [x] Field Node ingest API (`POST /iot/ingest`)
 - [x] Çift derinlik nem alanları
 - [x] Cihaz güncelleme/silme API (`PUT/DELETE /devices/detail/{id}`)
 
-**Durum:** Lab/zone/device CRUD tamam; çıkarım simüle (OCR iddiası yok)
+**Durum:** Lab/zone/device CRUD tamam; dosya zorunlu çıkarım + onay sonrası AI; simüle yalnızca dosya sonrası
 
 ---
 

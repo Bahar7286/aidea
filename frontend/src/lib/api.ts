@@ -890,12 +890,16 @@ export const api = {
       method: "POST",
       body: JSON.stringify(body),
     }),
-  labExtractDemo: () =>
+  labExtractDemo: (farmId: number, fileName: string) =>
     request<{
       parameters: LabParameter[];
       extraction_confidence: number;
       message: string;
-    }>("/lab-reports/extract-demo"),
+      extraction_mode: "parsed" | "simulated";
+      file_name?: string;
+    }>(
+      `/lab-reports/extract-demo?farm_id=${farmId}&file_name=${encodeURIComponent(fileName)}`,
+    ),
   uploadLabFile: async (farmId: number, file: File) => {
     const token =
       typeof window !== "undefined"
@@ -923,6 +927,9 @@ export const api = {
       original_name: string;
       size_bytes: number;
       message: string;
+      parameters: LabParameter[];
+      extraction_confidence: number;
+      extraction_mode: "parsed" | "simulated";
     };
   },
   listDevices: (

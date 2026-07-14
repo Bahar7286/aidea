@@ -708,6 +708,20 @@ class LabExtractDemoOut(BaseModel):
     parameters: list[LabParameterIn]
     extraction_confidence: float
     message: str
+    extraction_mode: Literal["parsed", "simulated"] = "simulated"
+    file_name: str | None = None
+    original_name: str | None = None
+    size_bytes: int | None = None
+
+
+class LabUploadExtractOut(BaseModel):
+    file_name: str
+    original_name: str
+    size_bytes: int
+    parameters: list[LabParameterIn]
+    extraction_confidence: float
+    extraction_mode: Literal["parsed", "simulated"]
+    message: str
 
 
 class IoTIngestMeasurement(BaseModel):

@@ -2,6 +2,10 @@
 
 from __future__ import annotations
 
+import io
+import re
+from pathlib import Path
+
 PARAM_LABELS = {
     "ph": "pH",
     "ec": "EC",
@@ -181,7 +185,7 @@ def count_critical(insights: list[dict]) -> int:
 
 
 def demo_extraction() -> tuple[list[dict], float]:
-    """Simulated OCR-like values — not real document OCR."""
+    """Simulated parameter set — only valid after a real file upload, never alone."""
     rows = [
         {"parameter_code": "ph", "value": 7.8, "unit": "pH", "confidence_pct": 96, "extracted_auto": True},
         {"parameter_code": "ec", "value": 1.42, "unit": "dS/m", "confidence_pct": 91, "extracted_auto": True},
@@ -195,6 +199,190 @@ def demo_extraction() -> tuple[list[dict], float]:
     ]
     avg = sum(r["confidence_pct"] for r in rows) / len(rows)
     return rows, round(avg, 1)
+
+
+# Heuristic token → parameter_code (Turkish + English lab labels)
+_TEXT_ALIASES: list[tuple[tuple[str, ...], str]] = [
+    (("organik madde", "organic matter", "organikmadde", " o.m.", "om%"), "om"),
+    (("elektriksel iletkenlik", "electrical conductivity", " e.c.", "ec ", "ec:", "ec="), "ec"),
+    (("kirec", "kireç", "caco3", "caco₃", "lime"), "lime"),
+    (("fosfor", "phosphorus", "p2o5", "p₂o₅", " yar. p", "p "), "p"),
+    (("potasyum", "potassium", "k2o", "k₂o", " yar. k", "k "), "k"),
+    (("azot", "nitrogen", " toplam n", "n "), "n"),
+    (("cinko", "çinko", "zinc", "zn"), "zn"),
+    (("demir", "iron", "fe"), "fe"),
+    (("boron", " bor ", "b "), "b"),
+    (("magnezyum", "magnesium", "mg"), "mg"),
+    (("sodyum", "sodium", "na"), "na"),
+    (("saturasyon", "saturation", "isba", "işba"), "saturation"),
+    ((" ph", "ph ", "ph:", "ph=", "toprak ph", "ph değeri"), "ph"),
+]
+
+
+def _parse_number(token: str) -> float | None:
+    t = token.strip().replace(",", ".").replace("%", "")
+    try:
+        return float(t)
+    except ValueError:
+        return None
+
+
+def _match_code(line: str) -> str | None:
+    low = f" {line.lower()} "
+    # Prefer pH early — short token "ph" alone is ambiguous in other words
+    if re.search(r"(?:^|[^a-z])ph(?:$|[^a-z0-9])", low) or "toprak ph" in low or "ph değeri" in low:
+        return "ph"
+    for aliases, code in _TEXT_ALIASES:
+        if code == "ph":
+            continue
+        for a in aliases:
+            if a in low:
+                return code
+    return None
+
+
+def parse_parameters_from_text(text: str) -> list[dict]:
+    """Pull parameter_code/value/unit pairs from free text or CSV-like lines."""
+    found: dict[str, dict] = {}
+    for raw in text.splitlines():
+        line = raw.strip()
+        if not line or len(line) < 3:
+            continue
+        # CSV / TSV: code_or_label, value, unit
+        parts = re.split(r"[,;\t|]+", line)
+        if len(parts) >= 2:
+            code = normalize_code(parts[0].strip())
+            if code in DEFAULT_UNITS or code in PARAM_LABELS:
+                val = _parse_number(parts[1])
+                if val is not None:
+                    unit = parts[2].strip() if len(parts) >= 3 and parts[2].strip() else DEFAULT_UNITS.get(code, "")
+                    found[code] = {
+                        "parameter_code": code,
+                        "value": val,
+                        "unit": unit or DEFAULT_UNITS.get(code, ""),
+                        "confidence_pct": 82.0,
+                        "extracted_auto": True,
+                    }
+                    continue
+            # label,value[,unit]
+            code2 = _match_code(parts[0])
+            val2 = _parse_number(parts[1])
+            if code2 and val2 is not None:
+                unit = parts[2].strip() if len(parts) >= 3 and parts[2].strip() else DEFAULT_UNITS.get(code2, "")
+                found[code2] = {
+                    "parameter_code": code2,
+                    "value": val2,
+                    "unit": unit or DEFAULT_UNITS.get(code2, ""),
+                    "confidence_pct": 78.0,
+                    "extracted_auto": True,
+                }
+                continue
+
+        code3 = _match_code(line)
+        if not code3:
+            continue
+        nums = re.findall(r"[-+]?\d+(?:[.,]\d+)?", line)
+        if not nums:
+            continue
+        # Prefer the number after the label when multiple exist
+        val3 = _parse_number(nums[-1] if code3 != "ph" else nums[0])
+        if val3 is None:
+            continue
+        unit_guess = DEFAULT_UNITS.get(code3, "")
+        for u in ("% ", "dS/m", "ds/m", "ppm", "mg/kg", "meq"):
+            if u.lower().strip() in line.lower():
+                unit_guess = u.strip() if u.strip() != "% " else "%"
+                break
+        found[code3] = {
+            "parameter_code": code3,
+            "value": val3,
+            "unit": unit_guess,
+            "confidence_pct": 70.0,
+            "extracted_auto": True,
+        }
+    return list(found.values())
+
+
+def _decode_text_bytes(content: bytes) -> str:
+    for enc in ("utf-8", "utf-8-sig", "latin-1", "cp1254"):
+        try:
+            return content.decode(enc)
+        except UnicodeDecodeError:
+            continue
+    return content.decode("utf-8", errors="ignore")
+
+
+def _extract_pdf_text(content: bytes) -> str:
+    try:
+        from pypdf import PdfReader  # type: ignore
+    except ImportError:
+        return ""
+    try:
+        reader = PdfReader(io.BytesIO(content))
+        chunks: list[str] = []
+        for page in reader.pages:
+            chunks.append(page.extract_text() or "")
+        return "\n".join(chunks)
+    except Exception:
+        return ""
+
+
+def extract_from_file(
+    content: bytes,
+    filename: str,
+    *,
+    allow_simulated_fallback: bool = True,
+) -> tuple[list[dict], float, str, str]:
+    """
+    Extract lab parameters from an uploaded report file.
+
+    Returns (parameters, confidence, mode, message).
+    mode: "parsed" | "simulated"
+    Simulated fallback ONLY when a file was provided and text parse failed.
+    """
+    name = filename.lower()
+    ext = Path(name).suffix
+    text = ""
+
+    if ext == ".pdf":
+        text = _extract_pdf_text(content)
+    elif ext in {".csv", ".txt", ".tsv"}:
+        text = _decode_text_bytes(content)
+    elif ext in {".xlsx", ".xls"}:
+        # No spreadsheet parser in MVP — try as plain text if mostly ASCII
+        text = _decode_text_bytes(content)
+        if text.count("\x00") > 20:
+            text = ""
+    elif ext in {".jpg", ".jpeg", ".png"}:
+        text = ""  # No image OCR in MVP
+    else:
+        text = _decode_text_bytes(content)
+
+    parsed = parse_parameters_from_text(text) if text.strip() else []
+    if len(parsed) >= 2:
+        avg = round(sum(p.get("confidence_pct") or 0 for p in parsed) / len(parsed), 1)
+        return (
+            parsed,
+            avg,
+            "parsed",
+            "Dosyadan metin çıkarıldı (heuristik). Gerçek OCR değildir — değerleri doğrulayın.",
+        )
+
+    if not allow_simulated_fallback:
+        return [], 0.0, "parsed", "Dosyadan parametre okunamadı."
+
+    rows, avg = demo_extraction()
+    reason = (
+        "Görüntü/tarama veya boş PDF — metin çıkarılamadı."
+        if ext in {".jpg", ".jpeg", ".png"} or (ext == ".pdf" and not text.strip())
+        else "Dosyadan yeterli parametre okunamadı."
+    )
+    return (
+        rows,
+        avg,
+        "simulated",
+        f"{reason} Simüle çıkarım (MVP) yalnızca yüklenen dosya sonrasında. Onay zorunlu.",
+    )
 
 
 def compute_status(user_confirmed: bool, parameters: list) -> str:

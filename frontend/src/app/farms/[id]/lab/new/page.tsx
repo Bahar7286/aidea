@@ -8,12 +8,15 @@ import { AppShell } from "@/components/app/AppShell";
 import { setSelectedFarmId } from "@/components/app/FarmSelector";
 import { api, Farm, LabParameter, ManagementZone } from "@/lib/api";
 
+type PathMode = "report" | "manual";
+
 export default function LabNewPage() {
   const params = useParams();
   const router = useRouter();
   const farmId = Number(params.id);
   const [farm, setFarm] = useState<Farm | null>(null);
   const [zones, setZones] = useState<ManagementZone[]>([]);
+  const [pathMode, setPathMode] = useState<PathMode>("report");
   const [step, setStep] = useState(1);
   const [labName, setLabName] = useState("");
   const [reportNumber, setReportNumber] = useState("");
@@ -26,6 +29,9 @@ export default function LabNewPage() {
   const [originalName, setOriginalName] = useState<string | null>(null);
   const [fileSize, setFileSize] = useState<number | null>(null);
   const [uploadMsg, setUploadMsg] = useState("");
+  const [extractionMode, setExtractionMode] = useState<
+    "parsed" | "simulated" | null
+  >(null);
   const [dragOver, setDragOver] = useState(false);
   const [paramsList, setParamsList] = useState<LabParameter[]>([]);
   const [extractionConfidence, setExtractionConfidence] = useState<number | null>(
@@ -59,6 +65,11 @@ export default function LabNewPage() {
       setOriginalName(res.original_name || file.name);
       setFileSize(res.size_bytes ?? file.size);
       setUploadMsg(res.message);
+      setExtractionMode(res.extraction_mode);
+      setParamsList(res.parameters || []);
+      setExtractionConfidence(res.extraction_confidence ?? null);
+      setPathMode("report");
+      setStep(2);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Yükleme başarısız");
     } finally {
@@ -66,32 +77,30 @@ export default function LabNewPage() {
     }
   }
 
-  async function runDemoExtract() {
-    setLoading(true);
-    setError("");
-    try {
-      const demo = await api.labExtractDemo();
-      setParamsList(demo.parameters);
-      setExtractionConfidence(demo.extraction_confidence);
-      setUploadMsg(demo.message);
-      setStep(2);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Çıkarım başarısız");
-    } finally {
-      setLoading(false);
-    }
+  function startManualPath() {
+    setPathMode("manual");
+    setFileName(null);
+    setOriginalName(null);
+    setFileSize(null);
+    setExtractionConfidence(null);
+    setExtractionMode(null);
+    setUploadMsg("");
+    setParamsList([
+      { parameter_code: "ph", value: 0, unit: "pH", extracted_auto: false },
+      { parameter_code: "ec", value: 0, unit: "dS/m", extracted_auto: false },
+      { parameter_code: "om", value: 0, unit: "%", extracted_auto: false },
+    ]);
+    setStep(2);
   }
 
-  function useManualDefaults() {
-    setParamsList([
-      { parameter_code: "ph", value: 6.8, unit: "pH", extracted_auto: false },
-      { parameter_code: "ec", value: 1.2, unit: "dS/m", extracted_auto: false },
-      { parameter_code: "om", value: 2.1, unit: "%", extracted_auto: false },
-      { parameter_code: "p", value: 18, unit: "ppm", extracted_auto: false },
-      { parameter_code: "k", value: 220, unit: "ppm", extracted_auto: false },
-    ]);
-    setExtractionConfidence(null);
-    setStep(2);
+  function updateParam(idx: number, field: keyof LabParameter, value: string) {
+    setParamsList((prev) =>
+      prev.map((r, i) => {
+        if (i !== idx) return r;
+        if (field === "value") return { ...r, value: Number(value) };
+        return { ...r, [field]: value as never };
+      }),
+    );
   }
 
   async function saveDraft(e: FormEvent) {
@@ -100,9 +109,26 @@ export default function LabNewPage() {
       setError("Laboratuvar adı gerekli.");
       return;
     }
-    if (paramsList.length === 0) {
-      setError("En az bir parametre gerekli.");
+    if (pathMode === "report" && !fileName) {
+      setError("Rapor yolu için önce dosya yükleyin.");
       return;
+    }
+    const usable = paramsList.filter(
+      (p) => p.unit.trim() && Number.isFinite(Number(p.value)),
+    );
+    if (usable.length === 0) {
+      setError("En az bir parametre (değer + birim) gerekli.");
+      return;
+    }
+    if (pathMode === "manual") {
+      if (usable.length < 2) {
+        setError("Manuel girişte en az iki parametre doldurun (örn. pH + EC).");
+        return;
+      }
+      if (usable.every((p) => Number(p.value) === 0)) {
+        setError("Varsayılan sıfırlarla analiz oluşturulamaz. Gerçek değerleri girin.");
+        return;
+      }
     }
     setLoading(true);
     setError("");
@@ -115,12 +141,13 @@ export default function LabNewPage() {
         sample_date: sampleDate ? new Date(sampleDate).toISOString() : null,
         sample_depth_cm: depth,
         sample_region: region.trim() || null,
-        file_name: fileName,
-        source_type: fileName || extractionConfidence != null ? "lab_report" : "lab_manual",
+        file_name: pathMode === "report" ? fileName : null,
+        source_type: pathMode === "report" ? "lab_report" : "lab_manual",
         user_confirmed: false,
         notes: notes.trim() || null,
-        extraction_confidence: extractionConfidence,
-        parameters: paramsList.map((p) => ({
+        extraction_confidence:
+          pathMode === "report" ? extractionConfidence : null,
+        parameters: usable.map((p) => ({
           parameter_code: p.parameter_code,
           value: Number(p.value),
           unit: p.unit,
@@ -137,6 +164,7 @@ export default function LabNewPage() {
   }
 
   const steps = ["Yükle", "Bilgiler", "Doğrula", "Tamamla"];
+  const canContinueReport = !!fileName && paramsList.length > 0;
 
   return (
     <AppShell title="Laboratuvar Raporu Yükle" farmName={farm?.name}>
@@ -179,92 +207,116 @@ export default function LabNewPage() {
         <div className="app-surface space-y-4 p-4 sm:p-6">
           {step === 1 && (
             <>
-              <div
-                className={`rounded-2xl border-2 border-dashed px-4 py-10 text-center transition ${
-                  dragOver
-                    ? "border-emerald-500 bg-emerald-50"
-                    : "border-[var(--auth-border)] bg-slate-50/80"
-                }`}
-                onDragOver={(e) => {
-                  e.preventDefault();
-                  setDragOver(true);
-                }}
-                onDragLeave={() => setDragOver(false)}
-                onDrop={(e) => {
-                  e.preventDefault();
-                  setDragOver(false);
-                  onFile(e.dataTransfer.files?.[0] || null);
-                }}
-              >
-                <Upload
-                  className="mx-auto h-10 w-10 text-emerald-700"
-                  strokeWidth={2}
-                  aria-hidden
-                />
-                <p className="mt-3 text-sm font-semibold">
-                  Rapor dosyanızı sürükleyin veya seçin
-                </p>
-                <p className="mt-1 text-xs text-[var(--auth-muted)]">
-                  PDF, JPG, PNG veya Excel (maks. 20 MB). Gerçek OCR yok — dosya
-                  saklanır; değerler onay adımında doğrulanır.
-                </p>
-                <label className="btn btn-primary mt-4 inline-flex cursor-pointer text-sm">
-                  <FileUp className="h-4 w-4" aria-hidden />
-                  Dosya seç
-                  <input
-                    type="file"
-                    className="hidden"
-                    accept=".pdf,.jpg,.jpeg,.png,.xlsx,.xls"
-                    onChange={(e) => onFile(e.target.files?.[0] || null)}
-                  />
-                </label>
-                {fileName && (
-                  <div className="mx-auto mt-4 flex max-w-md items-start gap-3 rounded-xl bg-white p-3 text-left ring-1 ring-emerald-200">
-                    <FileText className="mt-0.5 h-5 w-5 shrink-0 text-emerald-700" aria-hidden />
-                    <div className="min-w-0 text-xs">
-                      <p className="truncate font-semibold text-emerald-900">
-                        {originalName || fileName}
-                      </p>
-                      <p className="text-[var(--auth-muted)]">
-                        Sunucu: {fileName}
-                        {fileSize != null
-                          ? ` · ${(fileSize / 1024).toFixed(1)} KB`
-                          : ""}
-                      </p>
-                    </div>
-                  </div>
-                )}
-              </div>
               <div className="flex flex-wrap gap-2">
                 <button
                   type="button"
-                  className="btn btn-primary"
-                  onClick={runDemoExtract}
-                  disabled={loading}
+                  className={`btn text-sm ${pathMode === "report" ? "btn-primary" : "btn-secondary"}`}
+                  onClick={() => setPathMode("report")}
                 >
-                  Simüle çıkarım ile devam
+                  Rapor yükle
                 </button>
                 <button
                   type="button"
-                  className="btn btn-secondary"
-                  onClick={useManualDefaults}
-                  disabled={loading}
+                  className={`btn text-sm ${pathMode === "manual" ? "btn-primary" : "btn-secondary"}`}
+                  onClick={startManualPath}
                 >
-                  {fileName ? "Dosya + manuel değerler" : "Manuel değer gir"}
+                  Manuel lab girişi
                 </button>
               </div>
-              {uploadMsg && (
-                <p className="text-xs text-[var(--auth-muted)]">{uploadMsg}</p>
+
+              {pathMode === "report" && (
+                <>
+                  <div
+                    className={`rounded-2xl border-2 border-dashed px-4 py-10 text-center transition ${
+                      dragOver
+                        ? "border-emerald-500 bg-emerald-50"
+                        : "border-[var(--auth-border)] bg-slate-50/80"
+                    }`}
+                    onDragOver={(e) => {
+                      e.preventDefault();
+                      setDragOver(true);
+                    }}
+                    onDragLeave={() => setDragOver(false)}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      setDragOver(false);
+                      onFile(e.dataTransfer.files?.[0] || null);
+                    }}
+                  >
+                    <Upload
+                      className="mx-auto h-10 w-10 text-emerald-700"
+                      strokeWidth={2}
+                      aria-hidden
+                    />
+                    <p className="mt-3 text-sm font-semibold">
+                      Rapor dosyanızı sürükleyin veya seçin
+                    </p>
+                    <p className="mt-1 text-xs text-[var(--auth-muted)]">
+                      PDF, JPG, PNG, Excel, CSV veya TXT (maks. 20 MB). Dosya
+                      yüklenmeden analiz oluşturulmaz. Metin varsa çıkarılır;
+                      yoksa yalnızca dosya sonrası simüle çıkarım.
+                    </p>
+                    <label className="btn btn-primary mt-4 inline-flex cursor-pointer text-sm">
+                      <FileUp className="h-4 w-4" aria-hidden />
+                      Dosya seç
+                      <input
+                        type="file"
+                        className="hidden"
+                        accept=".pdf,.jpg,.jpeg,.png,.xlsx,.xls,.csv,.txt,.tsv"
+                        onChange={(e) => onFile(e.target.files?.[0] || null)}
+                      />
+                    </label>
+                    {fileName && (
+                      <div className="mx-auto mt-4 flex max-w-md items-start gap-3 rounded-xl bg-white p-3 text-left ring-1 ring-emerald-200">
+                        <FileText
+                          className="mt-0.5 h-5 w-5 shrink-0 text-emerald-700"
+                          aria-hidden
+                        />
+                        <div className="min-w-0 text-xs">
+                          <p className="truncate font-semibold text-emerald-900">
+                            {originalName || fileName}
+                          </p>
+                          <p className="text-[var(--auth-muted)]">
+                            Sunucu: {fileName}
+                            {fileSize != null
+                              ? ` · ${(fileSize / 1024).toFixed(1)} KB`
+                              : ""}
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  <button
+                    type="button"
+                    className="btn btn-primary"
+                    disabled={loading || !canContinueReport}
+                    onClick={() => setStep(2)}
+                  >
+                    {loading
+                      ? "…"
+                      : canContinueReport
+                        ? "Bilgilere devam →"
+                        : "Önce dosya seçin"}
+                  </button>
+                  {uploadMsg && (
+                    <p className="text-xs text-[var(--auth-muted)]">{uploadMsg}</p>
+                  )}
+                </>
               )}
             </>
           )}
 
           {step === 2 && (
             <>
-              <p className="text-sm font-semibold">Rapor bilgileri</p>
-              {fileName && (
+              <p className="text-sm font-semibold">
+                {pathMode === "report" ? "Rapor bilgileri" : "Manuel lab girişi"}
+              </p>
+              {pathMode === "report" && fileName && (
                 <p className="rounded-xl bg-emerald-50 px-3 py-2 text-xs text-emerald-900">
                   Yüklenen dosya: {originalName || fileName}
+                  {extractionMode
+                    ? ` · çıkarım: ${extractionMode === "parsed" ? "metin" : "simüle"}`
+                    : ""}
                 </p>
               )}
               <div className="grid gap-3 sm:grid-cols-2">
@@ -363,14 +415,54 @@ export default function LabNewPage() {
                   onChange={(e) => setNotes(e.target.value)}
                 />
               </div>
-              {extractionConfidence != null && (
+
+              <div className="space-y-2">
+                <p className="text-xs font-semibold text-[var(--auth-ink)]">
+                  Taslak parametreler (onay adımında kesinleşir)
+                </p>
+                {paramsList.map((p, idx) => (
+                  <div
+                    key={`${p.parameter_code}-${idx}`}
+                    className="grid grid-cols-[1fr_100px_90px] gap-2"
+                  >
+                    <input
+                      className="input py-1.5 text-xs uppercase"
+                      value={p.parameter_code}
+                      onChange={(e) =>
+                        updateParam(idx, "parameter_code", e.target.value)
+                      }
+                      required
+                    />
+                    <input
+                      className="input py-1.5"
+                      type="number"
+                      step="0.01"
+                      value={p.value}
+                      onChange={(e) => updateParam(idx, "value", e.target.value)}
+                      required
+                    />
+                    <input
+                      className="input py-1.5"
+                      value={p.unit}
+                      onChange={(e) => updateParam(idx, "unit", e.target.value)}
+                      required
+                    />
+                  </div>
+                ))}
+              </div>
+
+              {extractionConfidence != null && pathMode === "report" && (
                 <p className="rounded-xl bg-sky-50 px-3 py-2 text-xs text-sky-900">
-                  Simüle çıkarım güveni: %{extractionConfidence} — otomatik doğru
-                  sayılmaz.
+                  Çıkarım güveni: %{extractionConfidence}
+                  {extractionMode === "simulated"
+                    ? " — simüle (gerçek OCR değil)"
+                    : " — metin heuristiği; otomatik doğru sayılmaz"}
+                  .
                 </p>
               )}
               <p className="text-xs text-[var(--auth-muted)]">
                 {paramsList.length} parametre taslak; sonraki adımda doğrulayacaksınız.
+                AI yorumu yalnızca onaydan sonra.
               </p>
               <div className="flex flex-wrap gap-2">
                 <button
@@ -380,7 +472,13 @@ export default function LabNewPage() {
                 >
                   Geri
                 </button>
-                <button type="submit" className="btn btn-primary" disabled={loading}>
+                <button
+                  type="submit"
+                  className="btn btn-primary"
+                  disabled={
+                    loading || (pathMode === "report" && !fileName) || !labName.trim()
+                  }
+                >
                   {loading ? "…" : "Kaydet ve doğrula →"}
                 </button>
               </div>
@@ -392,10 +490,13 @@ export default function LabNewPage() {
           <p className="text-sm font-semibold text-[var(--auth-ink)]">
             Yükleme rehberi
           </p>
-          <p>Belge net olsun. Değerler kullanıcı onayı olmadan doğrulanmış sayılmaz.</p>
           <p>
-            Simüle çıkarım gerçek OCR değildir; demo değerler üretir. Lab verisi
-            sürekli IoT nem ölçümünün yerini tutmaz.
+            Rapor yolu: gerçek dosya zorunlu. Metin çıkarımı denenir; başarısızsa
+            simüle değerler yalnızca dosya yüklendikten sonra gelir.
+          </p>
+          <p>
+            Manuel yol: değerleri kendiniz yazarsınız. Onaysız kayıt doğrulanmış
+            sayılmaz. Lab verisi sürekli IoT nem ölçümünün yerini tutmaz.
           </p>
         </aside>
       </form>

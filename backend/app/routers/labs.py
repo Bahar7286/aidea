@@ -10,7 +10,7 @@ from app.deps import get_owned_farm
 from app.lab_interpret import (
     compute_status,
     count_critical,
-    demo_extraction,
+    extract_from_file,
     interpret_report,
     normalize_code,
 )
@@ -25,6 +25,7 @@ from app.schemas import (
     LabReportOut,
     LabReportUpdate,
     LabSummaryOut,
+    LabUploadExtractOut,
     ZoneCreate,
     ZoneOut,
     ZoneUpdate,
@@ -229,18 +230,36 @@ def list_zones(
 
 
 @router.get("/lab-reports/extract-demo", response_model=LabExtractDemoOut)
-def lab_extract_demo(current_user: User = Depends(get_current_user)):
-    """Simulated extraction — not real OCR. Always labeled for UI."""
-    _ = current_user
-    rows, avg = demo_extraction()
+def lab_extract_demo(
+    farm_id: int = Query(...),
+    file_name: str = Query(..., min_length=1),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Re-run extraction on an already uploaded farm file. No bare demo without file."""
+    get_owned_farm(db, farm_id, current_user)
+    safe_name = Path(file_name).name
+    if safe_name != file_name or ".." in file_name:
+        raise HTTPException(status_code=400, detail="Geçersiz dosya adı.")
+    path = UPLOAD_DIR / str(farm_id) / safe_name
+    if not path.is_file():
+        raise HTTPException(
+            status_code=400,
+            detail="Dosya bulunamadı. Önce rapor dosyası yükleyin; dosyasız simüle çıkarım yok.",
+        )
+    content = path.read_bytes()
+    rows, avg, mode, message = extract_from_file(content, safe_name, allow_simulated_fallback=True)
     return LabExtractDemoOut(
         parameters=[LabParameterIn(**r) for r in rows],
         extraction_confidence=avg,
-        message="Simüle çıkarım (MVP). Gerçek OCR / PDF ayrıştırma değildir.",
+        message=message,
+        extraction_mode=mode,  # type: ignore[arg-type]
+        file_name=safe_name,
+        size_bytes=len(content),
     )
 
 
-@router.post("/lab-reports/upload", status_code=201)
+@router.post("/lab-reports/upload", response_model=LabUploadExtractOut, status_code=201)
 async def upload_lab_file(
     farm_id: int = Form(...),
     file: UploadFile = File(...),
@@ -250,22 +269,31 @@ async def upload_lab_file(
     get_owned_farm(db, farm_id, current_user, require_active=True)
     name = file.filename or "report.bin"
     ext = Path(name).suffix.lower()
-    if ext not in {".pdf", ".jpg", ".jpeg", ".png", ".xlsx", ".xls"}:
-        raise HTTPException(status_code=400, detail="Desteklenen: PDF, JPG, PNG, Excel.")
+    if ext not in {".pdf", ".jpg", ".jpeg", ".png", ".xlsx", ".xls", ".csv", ".txt", ".tsv"}:
+        raise HTTPException(
+            status_code=400,
+            detail="Desteklenen: PDF, JPG, PNG, Excel, CSV, TXT.",
+        )
     content = await file.read()
     if len(content) > 20 * 1024 * 1024:
         raise HTTPException(status_code=400, detail="Dosya en fazla 20 MB olabilir.")
+    if len(content) == 0:
+        raise HTTPException(status_code=400, detail="Boş dosya yüklenemez.")
     dest_dir = UPLOAD_DIR / str(farm_id)
     dest_dir.mkdir(parents=True, exist_ok=True)
     safe = f"{datetime.utcnow().strftime('%Y%m%d%H%M%S')}_{Path(name).name}"
     path = dest_dir / safe
     path.write_bytes(content)
-    return {
-        "file_name": safe,
-        "original_name": name,
-        "size_bytes": len(content),
-        "message": "Dosya kaydedildi. OCR yok — değerleri manuel girin veya simüle çıkarım kullanın.",
-    }
+    rows, avg, mode, message = extract_from_file(content, name, allow_simulated_fallback=True)
+    return LabUploadExtractOut(
+        file_name=safe,
+        original_name=name,
+        size_bytes=len(content),
+        parameters=[LabParameterIn(**r) for r in rows],
+        extraction_confidence=avg,
+        extraction_mode=mode,  # type: ignore[arg-type]
+        message=message,
+    )
 
 
 @router.post("/lab-reports", response_model=LabReportOut, status_code=status.HTTP_201_CREATED)
@@ -287,8 +315,29 @@ def create_lab_report(
         if not zone:
             raise HTTPException(status_code=404, detail="Bölge bulunamadı.")
 
+    source = payload.source_type
+    file_name = (payload.file_name or "").strip() or None
+    if source == "lab_report":
+        if not file_name:
+            raise HTTPException(
+                status_code=400,
+                detail=(
+                    "lab_report kaynağı için yüklenmiş rapor dosyası gerekli. "
+                    "Dosyasız sahte analiz oluşturulamaz."
+                ),
+            )
+        safe = Path(file_name).name
+        stored = UPLOAD_DIR / str(payload.farm_id) / safe
+        if not stored.is_file():
+            raise HTTPException(
+                status_code=400,
+                detail="Rapor dosyası sunucuda yok. Önce dosya yükleyin.",
+            )
+        file_name = safe
+
     _validate_params(payload.parameters)
-    status_val = compute_status(payload.user_confirmed, payload.parameters)
+    # Never silent-confirm: create is always a draft until /confirm
+    status_val = compute_status(False, payload.parameters)
 
     report = LabReport(
         farm_id=payload.farm_id,
@@ -299,9 +348,9 @@ def create_lab_report(
         sample_date=payload.sample_date,
         sample_depth_cm=payload.sample_depth_cm,
         sample_region=payload.sample_region,
-        file_name=payload.file_name,
-        source_type=LabSourceType(payload.source_type),
-        user_confirmed=bool(payload.user_confirmed),
+        file_name=file_name,
+        source_type=LabSourceType(source),
+        user_confirmed=False,
         notes=payload.notes,
         status=status_val,
         extraction_confidence=payload.extraction_confidence,
@@ -335,9 +384,21 @@ def get_lab_detail(
     if not report:
         raise HTTPException(status_code=404, detail="Laboratuvar raporu bulunamadı.")
     get_owned_farm(db, report.farm_id, current_user)
-    insights_raw = interpret_report(
-        [{"parameter_code": p.parameter_code, "value": p.value, "unit": p.unit} for p in report.parameters]
-    )
+    params = [
+        {"parameter_code": p.parameter_code, "value": p.value, "unit": p.unit}
+        for p in report.parameters
+    ]
+    if not report.user_confirmed:
+        return LabDetailOut(
+            report=_report_out(report),
+            insights=[],
+            ai_summary=(
+                "Değerler henüz kullanıcı onayından geçmedi. "
+                "AI yorumu yalnızca onaylı parametreler üzerinde çalışır."
+            ),
+            source_note=f"Kaynak: {report.source_type.value} — laboratuvar verisi IoT sensörü değildir.",
+        )
+    insights_raw = interpret_report(params)
     highs = [i for i in insights_raw if i["risk"] == "high"]
     meds = [i for i in insights_raw if i["risk"] == "medium"]
     if highs:
@@ -427,10 +488,14 @@ def lab_summary(
             verified += 1
         if r.created_at and r.created_at >= cutoff:
             last_30 += 1
-        insights = interpret_report(
-            [{"parameter_code": p.parameter_code, "value": p.value, "unit": p.unit} for p in r.parameters]
-        )
-        critical += count_critical(insights)
+        if r.user_confirmed:
+            insights = interpret_report(
+                [
+                    {"parameter_code": p.parameter_code, "value": p.value, "unit": p.unit}
+                    for p in r.parameters
+                ]
+            )
+            critical += count_critical(insights)
     return LabSummaryOut(
         farm_id=farm_id,
         total=total,
@@ -487,6 +552,8 @@ def confirm_lab_report(
     if payload.parameters:
         _validate_params(payload.parameters)
         _replace_parameters(db, report, payload.parameters)
+        db.flush()
+        db.refresh(report)
     if not payload.confirmed:
         report.user_confirmed = False
         report.status = compute_status(False, report.parameters)

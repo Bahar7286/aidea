@@ -123,7 +123,8 @@ export default function LabVerifyPage() {
             </p>
           </div>
           <p className="sm:col-span-2 text-xs text-[var(--auth-muted)]">
-            Simüle çıkarım gerçek OCR değildir. Değerleri kontrol edip onaylayın.
+            Belgeden çıkarılan veya elle girilen değerleri kontrol edin. Onay
+            olmadan AI yorumu üretilmez. Simüle çıkarım gerçek OCR değildir.
           </p>
         </div>
       )}
