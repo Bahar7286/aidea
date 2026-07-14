@@ -9,6 +9,10 @@ import {
   FarmMaterialsField,
   MaterialSelection,
 } from "@/components/app/FarmMaterialsField";
+import {
+  ParcelFormValue,
+  ParcelQueryField,
+} from "@/components/app/ParcelQueryField";
 import { setSelectedFarmId } from "@/components/app/FarmSelector";
 import { api } from "@/lib/api";
 import { SchematicMap } from "@/components/app/SchematicMap";
@@ -23,13 +27,21 @@ export default function NewFarmPage() {
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({
     name: "Domates Serası",
-    location: "",
-    area: "2",
     soil_type: "tınlı",
     irrigation_type: "damla",
     crop_type: "domates",
     growth_stage: "çiçeklenme",
     zone_hint: "3",
+  });
+  const [parcel, setParcel] = useState<ParcelFormValue>({
+    latitude: "",
+    longitude: "",
+    area: "2",
+    location: "",
+    parcel_ada: "",
+    parcel_parsel: "",
+    parcel_mahalle_id: null,
+    geometry_geojson: null,
   });
   const [materials, setMaterials] = useState<MaterialSelection[]>([]);
 
@@ -46,14 +58,22 @@ export default function NewFarmPage() {
     setLoading(true);
     setError("");
     try {
+      const lat = parcel.latitude ? Number(parcel.latitude) : null;
+      const lng = parcel.longitude ? Number(parcel.longitude) : null;
       const farm = await api.createFarm({
         name: form.name,
-        location: form.location || null,
-        area: form.area ? Number(form.area) : null,
+        location: parcel.location || null,
+        latitude: lat != null && Number.isFinite(lat) ? lat : null,
+        longitude: lng != null && Number.isFinite(lng) ? lng : null,
+        area: parcel.area ? Number(parcel.area) : null,
         soil_type: form.soil_type || null,
         irrigation_type: form.irrigation_type || null,
         crop_type: form.crop_type || null,
         growth_stage: form.growth_stage || null,
+        parcel_ada: parcel.parcel_ada || null,
+        parcel_parsel: parcel.parcel_parsel || null,
+        parcel_mahalle_id: parcel.parcel_mahalle_id,
+        geometry_geojson: parcel.geometry_geojson,
         materials: materials.length
           ? materials.map((m) => ({
               material_id: m.material_id,
@@ -168,8 +188,10 @@ export default function NewFarmPage() {
                   id="area"
                   type="number"
                   step="0.1"
-                  value={form.area}
-                  onChange={(e) => update("area", e.target.value)}
+                  value={parcel.area}
+                  onChange={(e) =>
+                    setParcel((p) => ({ ...p, area: e.target.value }))
+                  }
                 />
               </div>
             </>
@@ -186,13 +208,13 @@ export default function NewFarmPage() {
                   className="input"
                   id="location"
                   placeholder="Antalya / Serik"
-                  value={form.location}
-                  onChange={(e) => update("location", e.target.value)}
+                  value={parcel.location}
+                  onChange={(e) =>
+                    setParcel((p) => ({ ...p, location: e.target.value }))
+                  }
                 />
               </div>
-              <p className="text-xs text-[var(--auth-muted)]">
-                MVP’de harita çizimi şematiktir; sınır poligonu P2 (Leaflet).
-              </p>
+              <ParcelQueryField value={parcel} onChange={setParcel} />
               <div>
                 <label className="label" htmlFor="growth_stage">
                   Gelişim dönemi
@@ -245,8 +267,14 @@ export default function NewFarmPage() {
                   {form.crop_type} · {form.soil_type} · {form.irrigation_type}
                 </li>
                 <li>
-                  {form.location || "Konum yok"} · {form.area || "—"} da
+                  {parcel.location || "Konum yok"} · {parcel.area || "—"} da
                 </li>
+                {parcel.parcel_ada && (
+                  <li>
+                    Ada {parcel.parcel_ada} / Parsel {parcel.parcel_parsel}
+                    {parcel.geometry_geojson ? " · sınır alındı" : ""}
+                  </li>
+                )}
                 <li>Başlangıç bölge: {form.zone_hint}</li>
                 <li>Malzeme sınıfı: {materials.length || "seçilmedi"}</li>
               </ul>
@@ -290,7 +318,7 @@ export default function NewFarmPage() {
           </div>
           <div className="p-3">
             <SchematicMap
-              areaDa={form.area ? Number(form.area) : 2}
+              areaDa={parcel.area ? Number(parcel.area) : 2}
               zones={[
                 { name: "Kuzey", moisture: 32 },
                 { name: "Orta", moisture: 28 },

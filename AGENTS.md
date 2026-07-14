@@ -42,6 +42,7 @@ iot/          Sensor simulation CLI
 | `techstack.md` | Technology decisions (as-built + roadmap) |
 | `designsystem.md` | UI tokens, app shell, SourceBadge, ConfirmGate |
 | `ekran-haritasi.md` | 38-screen inventory + MVP-20 UX/UI; **as-built App Router map §7** |
+| `TKGM_PARSEL.md` | Unofficial TKGM MEGSIS parcel proxy design (FastAPI `/geo/*` + Leaflet) |
 | `canvas.md` / `projeanalizi.md` | Strategy / vision — **MVP scope is mvp/prd/veri-mimarisi**, not the long-term vision |
 
 ## Working demo path

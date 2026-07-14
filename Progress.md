@@ -76,6 +76,7 @@ MVP şu probleme odaklanmaktadır:
 - Arazi gübre/ilaç **sınıf** kataloğu + farm association (yorum bağlamı; reçete yok)
 - Admin paneli, hub/KPI, abonelik plan seçimi (ödeme yok)
 - Open-Meteo hava + Leaflet OSM haritalar
+- TKGM MEGSIS parsel proxy (`/geo/*`, Leaflet sınır; resmi ortaklık yok — `TKGM_PARSEL.md`)
 - Demo kullanıcıları + `SEED_DEMO_USERS` / `/auth/demo-login`
 
 - Ürün sezon geçmişi + kural tabanlı sonraki ürün önerileri (rotasyon bağlamı; reçete değil)
@@ -283,6 +284,7 @@ MVP şu probleme odaklanmaktadır:
 - [x] Süre artırma/azaltma
 - [x] Senaryo karşılaştırma tablosu
 - [x] Leaflet OSM arazi haritası (dashboard / twin / landing)
+- [x] TKGM parsel sorgusu (proxy + GeoJSON sınır; fallback lat/lng)
 - [ ] Risk ısı haritası / poligon çizimi (ileri)
 
 **Durum:** Backend + UI tamam; Leaflet OSM canlı; risk alanı ısı haritası yok

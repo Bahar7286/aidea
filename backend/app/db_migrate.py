@@ -47,6 +47,14 @@ def _ensure_sqlite() -> None:
             conn.execute(text("ALTER TABLE farms ADD COLUMN latitude FLOAT"))
         if "longitude" not in farm_cols:
             conn.execute(text("ALTER TABLE farms ADD COLUMN longitude FLOAT"))
+        if "parcel_ada" not in farm_cols:
+            conn.execute(text("ALTER TABLE farms ADD COLUMN parcel_ada VARCHAR(40)"))
+        if "parcel_parsel" not in farm_cols:
+            conn.execute(text("ALTER TABLE farms ADD COLUMN parcel_parsel VARCHAR(40)"))
+        if "parcel_mahalle_id" not in farm_cols:
+            conn.execute(text("ALTER TABLE farms ADD COLUMN parcel_mahalle_id INTEGER"))
+        if "geometry_geojson" not in farm_cols:
+            conn.execute(text("ALTER TABLE farms ADD COLUMN geometry_geojson TEXT"))
 
         try:
             device_cols = {
@@ -187,6 +195,20 @@ def _ensure_postgres() -> None:
         )
         conn.execute(
             text("ALTER TABLE farms ADD COLUMN IF NOT EXISTS longitude DOUBLE PRECISION")
+        )
+        conn.execute(
+            text("ALTER TABLE farms ADD COLUMN IF NOT EXISTS parcel_ada VARCHAR(40)")
+        )
+        conn.execute(
+            text("ALTER TABLE farms ADD COLUMN IF NOT EXISTS parcel_parsel VARCHAR(40)")
+        )
+        conn.execute(
+            text(
+                "ALTER TABLE farms ADD COLUMN IF NOT EXISTS parcel_mahalle_id INTEGER"
+            )
+        )
+        conn.execute(
+            text("ALTER TABLE farms ADD COLUMN IF NOT EXISTS geometry_geojson TEXT")
         )
         conn.execute(
             text(

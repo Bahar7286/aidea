@@ -10,6 +10,10 @@ import {
   MaterialSelection,
 } from "@/components/app/FarmMaterialsField";
 import { FarmMapPanel } from "@/components/app/FarmMapPanel";
+import {
+  ParcelFormValue,
+  ParcelQueryField,
+} from "@/components/app/ParcelQueryField";
 import { setSelectedFarmId } from "@/components/app/FarmSelector";
 import { api, Farm } from "@/lib/api";
 
@@ -19,7 +23,16 @@ export default function EditFarmPage() {
   const router = useRouter();
   const [farm, setFarm] = useState<Farm | null>(null);
   const [cropType, setCropType] = useState("domates");
-  const [area, setArea] = useState("");
+  const [parcel, setParcel] = useState<ParcelFormValue>({
+    latitude: "",
+    longitude: "",
+    area: "",
+    location: "",
+    parcel_ada: "",
+    parcel_parsel: "",
+    parcel_mahalle_id: null,
+    geometry_geojson: null,
+  });
   const [materials, setMaterials] = useState<MaterialSelection[]>([]);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -32,7 +45,16 @@ export default function EditFarmPage() {
       .then((f) => {
         setFarm(f);
         setCropType(f.crops[0]?.crop_type || "domates");
-        setArea(f.area != null ? String(f.area) : "");
+        setParcel({
+          latitude: f.latitude != null ? String(f.latitude) : "",
+          longitude: f.longitude != null ? String(f.longitude) : "",
+          area: f.area != null ? String(f.area) : "",
+          location: f.location || "",
+          parcel_ada: f.parcel_ada || "",
+          parcel_parsel: f.parcel_parsel || "",
+          parcel_mahalle_id: f.parcel_mahalle_id ?? null,
+          geometry_geojson: f.geometry_geojson ?? null,
+        });
         setMaterials(
           (f.material_uses || []).map((u) => ({
             material_id: u.material_id,
@@ -54,15 +76,23 @@ export default function EditFarmPage() {
     setError("");
     const form = new FormData(e.currentTarget);
     try {
+      const lat = parcel.latitude ? Number(parcel.latitude) : null;
+      const lng = parcel.longitude ? Number(parcel.longitude) : null;
       const updated = await api.updateFarm(farmId, {
         name: String(form.get("name")),
-        location: String(form.get("location") || "") || null,
-        area: area ? Number(area) : null,
+        location: parcel.location || null,
+        latitude: lat != null && Number.isFinite(lat) ? lat : null,
+        longitude: lng != null && Number.isFinite(lng) ? lng : null,
+        area: parcel.area ? Number(parcel.area) : null,
         soil_type: String(form.get("soil_type") || "") || null,
         irrigation_type: String(form.get("irrigation_type") || "") || null,
         is_active: form.get("is_active") === "on",
         crop_type: cropType || null,
         growth_stage: String(form.get("growth_stage") || "") || null,
+        parcel_ada: parcel.parcel_ada || null,
+        parcel_parsel: parcel.parcel_parsel || null,
+        parcel_mahalle_id: parcel.parcel_mahalle_id,
+        geometry_geojson: parcel.geometry_geojson,
         materials: materials.map((m) => ({
           material_id: m.material_id,
           notes: m.notes || null,
@@ -94,6 +124,15 @@ export default function EditFarmPage() {
       </AppShell>
     );
   }
+
+  const previewFarm = {
+    ...farm,
+    area: parcel.area ? Number(parcel.area) : farm.area,
+    latitude: parcel.latitude ? Number(parcel.latitude) : farm.latitude,
+    longitude: parcel.longitude ? Number(parcel.longitude) : farm.longitude,
+    location: parcel.location || farm.location,
+    geometry_geojson: parcel.geometry_geojson,
+  };
 
   return (
     <AppShell title="Arazi Düzenle" farmName={farm.name}>
@@ -136,7 +175,10 @@ export default function EditFarmPage() {
                 className="input"
                 id="location"
                 name="location"
-                defaultValue={farm.location || ""}
+                value={parcel.location}
+                onChange={(e) =>
+                  setParcel((p) => ({ ...p, location: e.target.value }))
+                }
               />
             </div>
             <div>
@@ -149,8 +191,10 @@ export default function EditFarmPage() {
                 name="area"
                 type="number"
                 step="0.1"
-                value={area}
-                onChange={(e) => setArea(e.target.value)}
+                value={parcel.area}
+                onChange={(e) =>
+                  setParcel((p) => ({ ...p, area: e.target.value }))
+                }
               />
             </div>
             <div>
@@ -197,6 +241,9 @@ export default function EditFarmPage() {
               />
             </div>
             <div className="sm:col-span-2">
+              <ParcelQueryField value={parcel} onChange={setParcel} />
+            </div>
+            <div className="sm:col-span-2">
               <FarmMaterialsField value={materials} onChange={setMaterials} />
             </div>
           </div>
@@ -221,16 +268,13 @@ export default function EditFarmPage() {
         </div>
 
         <FarmMapPanel
-          farm={{
-            ...farm,
-            area: area ? Number(area) : farm.area,
-          }}
+          farm={previewFarm}
           zones={[
             { name: "Kuzey", moisture: 30 },
             { name: "Orta", moisture: 27 },
             { name: "Güney", moisture: 23 },
           ]}
-          areaDa={area ? Number(area) : farm.area}
+          areaDa={parcel.area ? Number(parcel.area) : farm.area}
           sourceType="simulation"
           title="Arazi önizleme"
           heightClass="h-72"

@@ -75,6 +75,10 @@ def create_farm(
         area=payload.area,
         soil_type=payload.soil_type,
         irrigation_type=payload.irrigation_type,
+        parcel_ada=payload.parcel_ada,
+        parcel_parsel=payload.parcel_parsel,
+        parcel_mahalle_id=payload.parcel_mahalle_id,
+        geometry_geojson=payload.geometry_geojson,
         is_active=True,
     )
     db.add(farm)

@@ -25,6 +25,8 @@ type FarmLeafletMapProps = {
   heightClass?: string;
   interactive?: boolean;
   className?: string;
+  /** When set, draw real parcel boundary instead of schematic moisture zones. */
+  geometryGeoJson?: string | null;
 };
 
 function moistureColor(m: number | null | undefined) {
@@ -60,6 +62,33 @@ function zonePolygons(
   });
 }
 
+function parseParcelPositions(
+  geometryGeoJson?: string | null,
+): [number, number][] | null {
+  if (!geometryGeoJson) return null;
+  try {
+    const g = JSON.parse(geometryGeoJson) as {
+      type?: string;
+      coordinates?: unknown;
+      geometry?: { type?: string; coordinates?: unknown };
+    };
+    const geom = g.geometry || g;
+    const type = geom.type;
+    const coords = geom.coordinates as number[][][] | number[][][][] | undefined;
+    if (!coords) return null;
+    let ring: number[][] | undefined;
+    if (type === "Polygon") {
+      ring = (coords as number[][][])[0];
+    } else if (type === "MultiPolygon") {
+      ring = (coords as number[][][][])[0]?.[0];
+    }
+    if (!ring?.length) return null;
+    return ring.map((c) => [c[1], c[0]] as [number, number]);
+  } catch {
+    return null;
+  }
+}
+
 function Recenter({ lat, lng, zoom }: { lat: number; lng: number; zoom: number }) {
   const map = useMap();
   useEffect(() => {
@@ -67,6 +96,16 @@ function Recenter({ lat, lng, zoom }: { lat: number; lng: number; zoom: number }
     const t = window.setTimeout(() => map.invalidateSize(), 120);
     return () => window.clearTimeout(t);
   }, [lat, lng, zoom, map]);
+  return null;
+}
+
+function FitParcel({ positions }: { positions: [number, number][] }) {
+  const map = useMap();
+  useEffect(() => {
+    if (positions.length < 2) return;
+    const bounds = L.latLngBounds(positions);
+    map.fitBounds(bounds, { padding: [28, 28], maxZoom: 17 });
+  }, [map, positions]);
   return null;
 }
 
@@ -78,13 +117,19 @@ export function FarmLeafletMap({
   heightClass = "h-64 sm:h-80",
   interactive = true,
   className = "",
+  geometryGeoJson,
 }: FarmLeafletMapProps) {
   const [ready, setReady] = useState(false);
   const area = Math.max(0.5, areaDa ?? 2);
   const lat = Number.isFinite(latitude) ? latitude : 39.0;
   const lng = Number.isFinite(longitude) ? longitude : 35.0;
+  const parcelPositions = useMemo(
+    () => parseParcelPositions(geometryGeoJson),
+    [geometryGeoJson],
+  );
 
   const polys = useMemo(() => {
+    if (parcelPositions) return [];
     const displayZones =
       zones.length > 0
         ? zones.slice(0, 5)
@@ -94,7 +139,7 @@ export function FarmLeafletMap({
             { name: "Bölge C", moisture: null },
           ];
     return zonePolygons(lat, lng, displayZones, area);
-  }, [lat, lng, zones, area]);
+  }, [lat, lng, zones, area, parcelPositions]);
 
   const zoom = area >= 8 ? 13 : area >= 3 ? 14 : 15;
 
@@ -126,7 +171,7 @@ export function FarmLeafletMap({
   return (
     <div className={`relative overflow-hidden bg-slate-100 ${heightClass} ${className}`}>
       <MapContainer
-        key={`${lat.toFixed(4)}-${lng.toFixed(4)}`}
+        key={`${lat.toFixed(4)}-${lng.toFixed(4)}-${parcelPositions ? "p" : "z"}`}
         center={[lat, lng]}
         zoom={zoom}
         className="h-full w-full"
@@ -137,12 +182,29 @@ export function FarmLeafletMap({
         zoomControl={interactive}
         attributionControl
       >
-        <Recenter lat={lat} lng={lng} zoom={zoom} />
+        {parcelPositions ? (
+          <FitParcel positions={parcelPositions} />
+        ) : (
+          <Recenter lat={lat} lng={lng} zoom={zoom} />
+        )}
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           maxZoom={19}
         />
+        {parcelPositions && (
+          <Polygon
+            positions={parcelPositions}
+            pathOptions={{
+              color: "#166534",
+              weight: 2.5,
+              fillColor: "#4ade80",
+              fillOpacity: 0.35,
+            }}
+          >
+            <Popup>Kadastro parseli (TKGM MEGSIS · resmi ortaklık yok)</Popup>
+          </Polygon>
+        )}
         {polys.map(({ zone, positions }) => (
           <Polygon
             key={zone.name}

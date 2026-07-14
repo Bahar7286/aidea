@@ -167,6 +167,10 @@ export type Farm = {
   area: number | null;
   soil_type: string | null;
   irrigation_type: string | null;
+  parcel_ada?: string | null;
+  parcel_parsel?: string | null;
+  parcel_mahalle_id?: number | null;
+  geometry_geojson?: string | null;
   is_active?: boolean;
   created_at: string;
   zone_count?: number;
@@ -178,6 +182,24 @@ export type Farm = {
     planting_date: string | null;
   }>;
   material_uses?: FarmMaterialUse[];
+};
+
+export type GeoOption = {
+  id: number | string;
+  name: string;
+};
+
+export type ParcelQueryResult = {
+  mahalle: string | null;
+  mahalle_id?: number | string | null;
+  ada: string;
+  parsel: string;
+  area_da: number | null;
+  centroid: { lat: number; lng: number };
+  geometry: {
+    type: string;
+    coordinates: number[][][] | number[][][][];
+  };
 };
 
 export type CropHistory = {
@@ -745,6 +767,15 @@ export const api = {
     ),
   createFarm: (body: Record<string, unknown>) =>
     request<Farm>("/farms", { method: "POST", body: JSON.stringify(body) }),
+  geoProvinces: () => request<GeoOption[]>("/geo/provinces"),
+  geoDistricts: (ilId: number) =>
+    request<GeoOption[]>(`/geo/districts?il_id=${ilId}`),
+  geoNeighborhoods: (ilceId: number) =>
+    request<GeoOption[]>(`/geo/neighborhoods?ilce_id=${ilceId}`),
+  geoParcel: (q: { mahalle_id: number; ada: string; parsel: string }) =>
+    request<ParcelQueryResult>(
+      `/geo/parcel?mahalle_id=${q.mahalle_id}&ada=${encodeURIComponent(q.ada)}&parsel=${encodeURIComponent(q.parsel)}`,
+    ),
   listAgroMaterials: (kind?: string) =>
     request<AgroMaterial[]>(
       kind ? `/agro-materials?kind=${encodeURIComponent(kind)}` : "/agro-materials"

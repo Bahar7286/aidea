@@ -145,6 +145,10 @@ class FarmCreate(BaseModel):
     area: float | None = None
     soil_type: str | None = None
     irrigation_type: str | None = None
+    parcel_ada: str | None = Field(default=None, max_length=40)
+    parcel_parsel: str | None = Field(default=None, max_length=40)
+    parcel_mahalle_id: int | None = None
+    geometry_geojson: str | None = None
     crop_type: str | None = Field(default=None, max_length=80)
     growth_stage: str | None = None
     material_ids: list[int] | None = None
@@ -159,6 +163,10 @@ class FarmUpdate(BaseModel):
     area: float | None = None
     soil_type: str | None = None
     irrigation_type: str | None = None
+    parcel_ada: str | None = Field(default=None, max_length=40)
+    parcel_parsel: str | None = Field(default=None, max_length=40)
+    parcel_mahalle_id: int | None = None
+    geometry_geojson: str | None = None
     is_active: bool | None = None
     crop_type: str | None = Field(default=None, max_length=80)
     growth_stage: str | None = None
@@ -186,6 +194,10 @@ class FarmOut(BaseModel):
     area: float | None
     soil_type: str | None
     irrigation_type: str | None
+    parcel_ada: str | None = None
+    parcel_parsel: str | None = None
+    parcel_mahalle_id: int | None = None
+    geometry_geojson: str | None = None
     is_active: bool = True
     created_at: datetime
     crops: list[CropOut] = []

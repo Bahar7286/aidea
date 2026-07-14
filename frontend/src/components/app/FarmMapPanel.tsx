@@ -74,6 +74,7 @@ export function FarmMapPanel({
     location?: string | null;
     name?: string | null;
     area?: number | null;
+    geometry_geojson?: string | null;
   } | null;
   zones: MapZone[];
   areaDa?: number | null;
@@ -86,6 +87,7 @@ export function FarmMapPanel({
   const { lat, lng } = resolveFarmCoords(farm);
   const area = areaDa ?? farm?.area ?? 2;
   const haLabel = (Math.max(0.5, area) / 10).toFixed(area >= 10 ? 1 : 2);
+  const hasParcel = !!farm?.geometry_geojson;
 
   return (
     <div className="overflow-hidden rounded-2xl border border-[var(--auth-border)] bg-white shadow-sm">
@@ -100,6 +102,11 @@ export function FarmMapPanel({
           <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-700">
             {Number(area).toFixed(1)} da · ~{haLabel} ha
           </span>
+          {hasParcel && (
+            <span className="rounded-full bg-lime-50 px-2 py-0.5 text-[10px] font-medium text-lime-800">
+              Parsel sınırı
+            </span>
+          )}
           <SourceBadge source={sourceType || "simulation"} />
           <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-medium text-[var(--auth-forest)]">
             OSM
@@ -113,6 +120,7 @@ export function FarmMapPanel({
         areaDa={area}
         heightClass={heightClass || "h-64 sm:h-80"}
         interactive={interactive}
+        geometryGeoJson={farm?.geometry_geojson}
       />
     </div>
   );

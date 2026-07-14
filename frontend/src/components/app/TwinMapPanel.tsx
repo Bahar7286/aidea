@@ -39,6 +39,7 @@ export function TwinMapPanel({
     location?: string | null;
     name?: string | null;
     area?: number | null;
+    geometry_geojson?: string | null;
   } | null;
   zones: TwinZone[];
   selectedName?: string;
@@ -83,7 +84,7 @@ export function TwinMapPanel({
           areaDa={areaDa ?? farm?.area}
           sourceType={sourceLabel || "simulation"}
           title="Dijital ikiz haritası"
-          subtitle={`OSM + nem poligonları · ${sourceLabel ? `Kaynak: ${sourceLabel}` : "veri yok"}`}
+          subtitle={`OSM · ${farm?.geometry_geojson ? "parsel sınırı" : "nem poligonları"} · ${sourceLabel ? `Kaynak: ${sourceLabel}` : "veri yok"}`}
           heightClass="h-[22rem] sm:h-[28rem]"
         />
         <div className="flex flex-wrap gap-2 px-1">
