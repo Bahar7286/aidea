@@ -34,12 +34,20 @@ export default function HomePage() {
             </span>
             AgriTwin AI
           </Link>
-          <Link
-            href="/login"
-            className="rounded-xl border border-white/25 bg-white/10 px-4 py-2 text-sm font-semibold text-white backdrop-blur transition hover:bg-white/20"
-          >
-            Giriş
-          </Link>
+          <div className="flex items-center gap-2 sm:gap-3">
+            <a
+              href="/pitch/"
+              className="rounded-xl px-3 py-2 text-sm font-semibold text-lime-300/95 underline-offset-4 transition hover:bg-white/10 hover:underline sm:px-4"
+            >
+              Sunum (9 sayfa)
+            </a>
+            <Link
+              href="/login"
+              className="rounded-xl border border-white/25 bg-white/10 px-4 py-2 text-sm font-semibold text-white backdrop-blur transition hover:bg-white/20"
+            >
+              Giriş
+            </Link>
+          </div>
         </div>
       </header>
 
@@ -86,6 +94,18 @@ export default function HomePage() {
           </div>
         </section>
       </main>
+
+      <footer className="relative z-20 border-t border-white/10">
+        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-5 py-5 text-sm text-white/60 sm:px-8">
+          <span>AgriTwin AI · MVP prototip</span>
+          <a
+            href="/pitch/"
+            className="font-semibold text-lime-300/90 underline-offset-4 hover:text-lime-200 hover:underline"
+          >
+            Sunum (9 sayfa)
+          </a>
+        </div>
+      </footer>
     </div>
   );
 }

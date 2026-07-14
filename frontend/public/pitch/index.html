@@ -28,11 +28,7 @@
       -webkit-font-smoothing: antialiased;
     }
 
-    .deck {
-      height: 100vh;
-      width: 100vw;
-      position: relative;
-    }
+    .deck { height: 100vh; width: 100vw; position: relative; }
 
     .slide {
       position: absolute;
@@ -40,44 +36,13 @@
       display: flex;
       flex-direction: column;
       justify-content: center;
-      padding: clamp(2rem, 6vw, 5rem) clamp(2rem, 8vw, 7rem);
+      padding: clamp(1.5rem, 4vw, 3.5rem) clamp(1.5rem, 5vw, 4.5rem);
       opacity: 0;
       pointer-events: none;
-      transform: translateX(24px);
-      transition: opacity 0.35s ease, transform 0.35s ease;
-      background:
-        radial-gradient(ellipse 80% 60% at 100% 0%, rgba(129, 199, 132, 0.18), transparent 55%),
-        radial-gradient(ellipse 70% 50% at 0% 100%, rgba(27, 94, 32, 0.25), transparent 50%),
-        linear-gradient(165deg, #e8f5e9 0%, #c8e6c9 42%, #a5d6a7 100%);
+      transform: translateX(20px);
+      transition: opacity 0.32s ease, transform 0.32s ease;
+      background: linear-gradient(165deg, #e8f5e9 0%, #c8e6c9 50%, #a5d6a7 100%);
       overflow: hidden;
-    }
-
-    .slide::before {
-      content: "";
-      position: absolute;
-      inset: 0;
-      background:
-        repeating-linear-gradient(
-          -12deg,
-          transparent,
-          transparent 28px,
-          rgba(46, 125, 50, 0.04) 28px,
-          rgba(46, 125, 50, 0.04) 29px
-        );
-      pointer-events: none;
-    }
-
-    .slide::after {
-      content: "";
-      position: absolute;
-      bottom: -8%;
-      left: -5%;
-      width: 55%;
-      height: 28%;
-      background:
-        radial-gradient(ellipse at 30% 80%, rgba(27, 94, 32, 0.22) 0%, transparent 70%),
-        radial-gradient(ellipse at 70% 90%, rgba(46, 125, 50, 0.15) 0%, transparent 65%);
-      pointer-events: none;
     }
 
     .slide.active {
@@ -87,216 +52,428 @@
       z-index: 1;
     }
 
-    .slide.cover {
-      background:
-        radial-gradient(ellipse 90% 70% at 70% 20%, rgba(129, 199, 132, 0.35), transparent 55%),
-        linear-gradient(155deg, #1b5e20 0%, #2e7d32 45%, #1b5e20 100%);
-      color: var(--white);
-    }
-
-    .slide.cover::before {
-      background:
-        repeating-linear-gradient(
-          8deg,
-          transparent,
-          transparent 40px,
-          rgba(255, 255, 255, 0.03) 40px,
-          rgba(255, 255, 255, 0.03) 41px
-        );
-    }
-
-    .slide.cta {
-      background:
-        radial-gradient(ellipse 70% 50% at 50% 100%, rgba(129, 199, 132, 0.4), transparent 60%),
-        linear-gradient(160deg, #1b5e20 0%, #2e7d32 50%, #388e3c 100%);
-      color: var(--white);
-    }
-
-    .brand {
-      font-size: clamp(1rem, 2vw, 1.25rem);
-      font-weight: 700;
-      letter-spacing: 0.06em;
-      text-transform: uppercase;
-      color: var(--green);
-      margin-bottom: 1.25rem;
+    .eyebrow {
       position: relative;
       z-index: 2;
-    }
-
-    .slide.cover .brand,
-    .slide.cta .brand {
-      color: var(--accent);
-      font-size: clamp(1.5rem, 4vw, 2.75rem);
-      letter-spacing: 0.04em;
-      text-transform: none;
-      margin-bottom: 0.75rem;
+      font-size: clamp(0.8rem, 1.4vw, 1rem);
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--green);
+      margin-bottom: 0.65rem;
     }
 
     h1 {
-      font-size: clamp(2rem, 5.5vw, 3.75rem);
+      position: relative;
+      z-index: 2;
+      font-size: clamp(1.7rem, 4.2vw, 3rem);
       font-weight: 800;
       line-height: 1.12;
       letter-spacing: -0.02em;
-      max-width: 16ch;
-      margin-bottom: 1.75rem;
+      max-width: 18ch;
+      margin-bottom: 0.85rem;
+      color: var(--ink);
+    }
+
+    .line {
       position: relative;
       z-index: 2;
+      font-size: clamp(1rem, 2vw, 1.35rem);
+      font-weight: 500;
+      color: var(--muted);
+      max-width: 32rem;
+      line-height: 1.4;
     }
 
-    .slide.cover h1 {
-      max-width: 14ch;
-      font-size: clamp(2.4rem, 6.5vw, 4.5rem);
-      margin-bottom: 1.25rem;
-    }
-
-    ul {
-      list-style: none;
+    .lines {
       position: relative;
       z-index: 2;
       display: flex;
       flex-direction: column;
-      gap: 0.85rem;
-      max-width: 36rem;
+      gap: 0.45rem;
+      margin-top: 0.35rem;
     }
 
-    li {
-      font-size: clamp(1.15rem, 2.4vw, 1.55rem);
-      font-weight: 500;
-      line-height: 1.35;
-      padding-left: 1.35rem;
-      position: relative;
+    .lines p {
+      font-size: clamp(1rem, 1.9vw, 1.25rem);
+      font-weight: 600;
       color: var(--muted);
     }
 
-    .slide.cover li,
-    .slide.cta li {
-      color: rgba(247, 251, 247, 0.9);
+    /* —— Cover —— */
+    .slide.cover {
+      padding: 0;
+      color: var(--white);
+      background: #081c15;
     }
 
-    li::before {
-      content: "";
+    .cover-bg {
       position: absolute;
-      left: 0;
-      top: 0.55em;
-      width: 0.55rem;
-      height: 0.55rem;
-      border-radius: 50%;
-      background: var(--green);
+      inset: 0;
+      background:
+        linear-gradient(105deg, rgba(8, 28, 21, 0.88) 0%, rgba(8, 28, 21, 0.55) 42%, rgba(8, 28, 21, 0.25) 100%),
+        url("assets/greenhouse-node.png") center / cover no-repeat;
     }
 
-    .slide.cover li::before,
-    .slide.cta li::before {
-      background: var(--accent);
-    }
-
-    .demo-box {
+    .cover-copy {
       position: relative;
       z-index: 2;
-      margin-top: 1.5rem;
-      padding: 1.25rem 1.5rem;
-      border: 2px solid var(--green);
-      border-radius: 4px;
-      background: rgba(255, 255, 255, 0.45);
       max-width: 28rem;
+      padding: clamp(2rem, 6vw, 5rem);
     }
 
-    .demo-box a {
-      display: block;
-      font-size: clamp(1.2rem, 2.8vw, 1.65rem);
-      font-weight: 800;
-      color: var(--green-dark);
-      text-decoration: none;
-      margin-bottom: 0.65rem;
-      word-break: break-all;
+    .slide.cover .eyebrow { color: var(--accent); }
+    .slide.cover h1 {
+      color: #fff;
+      max-width: 12ch;
+      font-size: clamp(2.4rem, 6vw, 4.2rem);
+      margin-bottom: 0.5rem;
     }
+    .slide.cover .line { color: rgba(247, 251, 247, 0.88); max-width: 22rem; }
 
-    .demo-box a:hover { text-decoration: underline; }
-
-    .demo-box p {
-      font-size: clamp(0.95rem, 1.8vw, 1.15rem);
-      color: var(--muted);
-      line-height: 1.45;
-    }
-
-    .demo-box code {
-      font-family: ui-monospace, Consolas, monospace;
-      font-size: 0.95em;
-      color: var(--green-dark);
-      background: rgba(46, 125, 50, 0.12);
-      padding: 0.1em 0.35em;
-      border-radius: 3px;
-    }
-
-    .pipeline {
+    /* —— Visual panels —— */
+    .vis {
       position: relative;
       z-index: 2;
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.5rem;
-      align-items: center;
-      margin-top: 1.5rem;
-      font-size: clamp(0.85rem, 1.6vw, 1.05rem);
-      font-weight: 700;
+      margin-top: 1rem;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 12px 40px rgba(13, 31, 18, 0.18);
+      background: #fff;
+      max-height: min(58vh, 520px);
+    }
+
+    .vis img {
+      display: block;
+      width: 100%;
+      height: 100%;
+      max-height: min(58vh, 520px);
+      object-fit: contain;
+      background: #fff;
+    }
+
+    .vis.bleed {
+      position: absolute;
+      inset: 0;
+      margin: 0;
+      border-radius: 0;
+      max-height: none;
+      box-shadow: none;
+      background: #fff;
+    }
+
+    .vis.bleed img {
+      max-height: none;
+      height: 100%;
+      width: 100%;
+      object-fit: contain;
+      object-position: center;
+    }
+
+    .slide.photo-full { padding: 0; background: #0d1f12; }
+
+    .photo-chrome {
+      position: absolute;
+      z-index: 3;
+      left: clamp(1rem, 3vw, 2rem);
+      top: clamp(1rem, 3vw, 2rem);
+      padding: 0.55rem 0.9rem;
+      border-radius: 8px;
+      background: rgba(8, 28, 21, 0.72);
+      color: #fff;
+      backdrop-filter: blur(6px);
+    }
+
+    .photo-chrome .eyebrow { color: var(--accent); margin-bottom: 0.15rem; }
+    .photo-chrome h1 {
+      color: #fff;
+      font-size: clamp(1.2rem, 2.4vw, 1.75rem);
+      max-width: none;
+      margin: 0;
+    }
+
+    /* —— Problem icons —— */
+    .icon-row {
+      position: relative;
+      z-index: 2;
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 0.85rem;
+      margin-top: 1.25rem;
+      max-width: 48rem;
+    }
+
+    .icon-card {
+      background: rgba(255, 255, 255, 0.72);
+      border: 1px solid rgba(46, 125, 50, 0.25);
+      border-radius: 12px;
+      padding: 1.1rem 0.9rem;
+      text-align: center;
+    }
+
+    .icon-card svg { width: 2.5rem; height: 2.5rem; margin: 0 auto 0.65rem; display: block; }
+    .icon-card strong {
+      display: block;
+      font-size: clamp(0.95rem, 1.6vw, 1.1rem);
       color: var(--green-dark);
+      margin-bottom: 0.25rem;
+    }
+    .icon-card span {
+      font-size: clamp(0.8rem, 1.3vw, 0.95rem);
+      color: var(--muted);
     }
 
-    .pipeline span {
-      background: rgba(255, 255, 255, 0.55);
-      border: 1px solid rgba(46, 125, 50, 0.35);
-      padding: 0.45rem 0.75rem;
-      border-radius: 3px;
+    /* —— Compare table —— */
+    .compare {
+      position: relative;
+      z-index: 2;
+      margin-top: 1rem;
+      width: min(52rem, 100%);
+      border-collapse: collapse;
+      background: rgba(255, 255, 255, 0.78);
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 8px 28px rgba(13, 31, 18, 0.12);
     }
 
-    .pipeline .arrow {
+    .compare th, .compare td {
+      padding: 0.85rem 1rem;
+      text-align: left;
+      font-size: clamp(0.9rem, 1.6vw, 1.1rem);
+      border-bottom: 1px solid rgba(46, 125, 50, 0.15);
+    }
+
+    .compare th {
+      background: var(--green-dark);
+      color: #fff;
+      font-weight: 700;
+    }
+
+    .compare td:first-child { font-weight: 700; color: var(--green-dark); width: 28%; }
+    .compare tr:last-child td { border-bottom: none; }
+    .compare .yes { color: var(--green); font-weight: 700; }
+    .compare .no { color: #8d6e63; }
+
+    /* —— Split AI —— */
+    .split-media {
+      position: relative;
+      z-index: 2;
+      display: grid;
+      grid-template-columns: 1.35fr 0.9fr;
+      gap: 1.25rem;
+      align-items: center;
+      margin-top: 0.5rem;
+      max-width: 64rem;
+    }
+
+    .split-media .vis { margin-top: 0; max-height: min(62vh, 560px); }
+    .split-media .vis img { max-height: min(62vh, 560px); }
+
+    .flow {
+      display: flex;
+      flex-direction: column;
+      gap: 0.55rem;
+    }
+
+    .flow span {
+      background: rgba(255, 255, 255, 0.8);
+      border: 1px solid rgba(46, 125, 50, 0.3);
+      border-radius: 8px;
+      padding: 0.55rem 0.75rem;
+      font-weight: 700;
+      font-size: clamp(0.85rem, 1.5vw, 1.05rem);
+      color: var(--green-dark);
+      text-align: center;
+    }
+
+    .flow .arr {
       border: none;
       background: transparent;
       color: var(--green);
       padding: 0;
-      font-size: 1.2em;
+      font-size: 1.1rem;
     }
 
-    .split {
+    /* —— Prototype —— */
+    .proto {
+      position: relative;
+      z-index: 2;
+      display: grid;
+      grid-template-columns: 1.2fr 0.9fr;
+      gap: 1.25rem;
+      align-items: center;
+      max-width: 64rem;
+    }
+
+    .proto .vis { margin-top: 0; }
+
+    .url-box {
+      background: rgba(255, 255, 255, 0.82);
+      border: 2px solid var(--green);
+      border-radius: 12px;
+      padding: 1.25rem 1.35rem;
+    }
+
+    .url-box a {
+      display: block;
+      font-size: clamp(1.15rem, 2.6vw, 1.7rem);
+      font-weight: 800;
+      color: var(--green-dark);
+      text-decoration: none;
+      word-break: break-all;
+      margin-bottom: 0.75rem;
+    }
+
+    .url-box a:hover { text-decoration: underline; }
+
+    .url-box p {
+      font-size: clamp(0.95rem, 1.6vw, 1.1rem);
+      color: var(--muted);
+      font-weight: 600;
+      line-height: 1.4;
+    }
+
+    /* —— Roadmap —— */
+    .roadmap {
+      position: relative;
+      z-index: 2;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0.85rem;
+      margin-top: 1.25rem;
+      max-width: 52rem;
+    }
+
+    .mile {
+      background: rgba(255, 255, 255, 0.78);
+      border-radius: 12px;
+      padding: 1.1rem;
+      border-top: 4px solid var(--green);
+    }
+
+    .mile em {
+      display: block;
+      font-style: normal;
+      font-size: 0.8rem;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--green);
+      margin-bottom: 0.4rem;
+    }
+
+    .mile strong {
+      display: block;
+      font-size: clamp(1rem, 1.8vw, 1.2rem);
+      color: var(--ink);
+      margin-bottom: 0.35rem;
+    }
+
+    .mile span {
+      font-size: clamp(0.85rem, 1.4vw, 0.98rem);
+      color: var(--muted);
+      line-height: 1.35;
+    }
+
+    /* —— Costs —— */
+    .costs {
       position: relative;
       z-index: 2;
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 1.5rem;
-      max-width: 36rem;
-      margin-top: 0.5rem;
+      gap: 1rem;
+      margin-top: 1.1rem;
+      max-width: 44rem;
     }
 
-    .split ul { max-width: none; }
+    .cost {
+      background: rgba(255, 255, 255, 0.8);
+      border-radius: 12px;
+      padding: 1.15rem 1.2rem;
+    }
 
-    .split h3 {
+    .cost h3 {
       font-size: clamp(1rem, 1.8vw, 1.2rem);
-      font-weight: 800;
-      margin-bottom: 0.75rem;
+      color: var(--green-dark);
+      margin-bottom: 0.7rem;
+    }
+
+    .bars { display: flex; flex-direction: column; gap: 0.45rem; }
+
+    .bar {
+      height: 1.55rem;
+      border-radius: 4px;
+      background: linear-gradient(90deg, var(--green-dark), var(--green-mid));
+      color: #fff;
+      font-size: 0.78rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      padding: 0 0.6rem;
+    }
+
+    .cost.var .bar {
+      background: linear-gradient(90deg, #66bb6a, #a5d6a7);
       color: var(--green-dark);
     }
 
-    .split .no h3 { color: #6d4c41; }
-    .split .no li::before { background: #8d6e63; }
+    .bar.w90 { width: 90%; }
+    .bar.w70 { width: 70%; }
+    .bar.w55 { width: 55%; }
+    .bar.w40 { width: 40%; }
+    .bar.w30 { width: 30%; }
 
+    /* —— Closing —— */
+    .slide.cta {
+      background:
+        radial-gradient(ellipse 70% 50% at 50% 100%, rgba(129, 199, 132, 0.35), transparent 60%),
+        linear-gradient(160deg, #1b5e20 0%, #2e7d32 50%, #388e3c 100%);
+      color: var(--white);
+    }
+
+    .slide.cta .eyebrow { color: var(--accent); }
+    .slide.cta h1 { color: #fff; max-width: 14ch; }
+    .slide.cta .line { color: rgba(247, 251, 247, 0.9); }
+
+    .team {
+      position: relative;
+      z-index: 2;
+      margin-top: 1.5rem;
+      display: grid;
+      gap: 0.55rem;
+      max-width: 28rem;
+    }
+
+    .team li {
+      list-style: none;
+      font-size: clamp(1.05rem, 2vw, 1.3rem);
+      font-weight: 600;
+      color: rgba(247, 251, 247, 0.95);
+      padding: 0.55rem 0.85rem;
+      border: 1px dashed rgba(255, 255, 255, 0.35);
+      border-radius: 8px;
+      min-height: 2.6rem;
+    }
+
+    .team li.empty { color: rgba(247, 251, 247, 0.45); font-weight: 500; }
+
+    /* —— Nav —— */
     .nav {
       position: fixed;
-      bottom: 1.5rem;
+      bottom: 1.25rem;
       left: 50%;
       transform: translateX(-50%);
       z-index: 10;
       display: flex;
       align-items: center;
       gap: 0.75rem;
-      padding: 0.5rem 0.85rem;
-      background: rgba(13, 31, 18, 0.72);
+      padding: 0.45rem 0.8rem;
+      background: rgba(13, 31, 18, 0.75);
       backdrop-filter: blur(8px);
       border-radius: 999px;
     }
 
-    .dots {
-      display: flex;
-      gap: 0.4rem;
-      align-items: center;
-    }
+    .dots { display: flex; gap: 0.35rem; align-items: center; }
 
     .dot {
       width: 9px;
@@ -306,53 +483,36 @@
       background: rgba(255, 255, 255, 0.35);
       cursor: pointer;
       padding: 0;
-      transition: transform 0.15s, background 0.15s;
     }
 
-    .dot.active {
-      background: #81c784;
-      transform: scale(1.25);
-    }
+    .dot.active { background: #81c784; transform: scale(1.25); }
 
     .nav button.ctrl {
-      width: 36px;
-      height: 36px;
+      width: 34px;
+      height: 34px;
       border: none;
       border-radius: 50%;
       background: rgba(255, 255, 255, 0.12);
       color: #fff;
       font-size: 1.1rem;
       cursor: pointer;
-      line-height: 1;
-    }
-
-    .nav button.ctrl:hover {
-      background: rgba(129, 199, 132, 0.45);
     }
 
     .hint {
       position: fixed;
-      top: 1rem;
-      right: 1.25rem;
+      top: 0.9rem;
+      right: 1.1rem;
       z-index: 10;
-      font-size: 0.75rem;
-      color: rgba(13, 31, 18, 0.45);
-      letter-spacing: 0.02em;
+      font-size: 0.72rem;
+      color: rgba(255, 255, 255, 0.45);
     }
 
-    .slide.cover .hint,
-    .slide.cta ~ .hint { color: rgba(255, 255, 255, 0.4); }
+    .click-zone { position: fixed; inset: 0; z-index: 5; }
 
-    .click-zone {
-      position: fixed;
-      inset: 0;
-      z-index: 5;
-      cursor: default;
-    }
-
-    @media (max-width: 640px) {
-      .split { grid-template-columns: 1fr; }
-      .hint { display: none; }
+    @media (max-width: 800px) {
+      .split-media, .proto, .costs, .roadmap, .icon-row { grid-template-columns: 1fr; }
+      .flow { flex-direction: row; flex-wrap: wrap; justify-content: center; }
+      .flow .arr { transform: rotate(90deg); }
     }
 
     @media print {
@@ -373,127 +533,199 @@
 
   <div class="deck" id="deck" role="region" aria-label="AgriTwin pitch sunumu">
 
-    <!-- 1 -->
-    <section class="slide cover active" data-i="0" aria-label="Açılış">
-      <p class="brand">AgriTwin AI</p>
-      <h1>Toprak bozulmadan önce gör.</h1>
-      <ul>
-        <li>Nem + lab + geçmiş → tek bakış</li>
-        <li>Erken uyarı, geç kriz değil</li>
-        <li>Çalışan web prototip</li>
-      </ul>
+    <!-- 1 Kapak -->
+    <section class="slide cover active" data-i="0" aria-label="Kapak">
+      <div class="cover-bg" role="img" aria-label="Sera içi AgriTwin alan düğümü"></div>
+      <div class="cover-copy">
+        <p class="eyebrow">AgriTwin AI</p>
+        <h1>Toprak bozulmadan önce gör.</h1>
+        <p class="line">Nem + lab + geçmiş → erken içgörü</p>
+      </div>
     </section>
 
-    <!-- 2 -->
+    <!-- 2 Problem -->
     <section class="slide" data-i="1" aria-label="Problem">
-      <p class="brand">Problem</p>
+      <p class="eyebrow">Problem</p>
       <h1>Veri var. Anlam yok.</h1>
-      <ul>
-        <li>IoT + lab + geçmiş dağınık</li>
-        <li>Karşılaştırma / yorum zor</li>
-        <li>Yıllık lab → çoğu kez geç</li>
-      </ul>
-    </section>
-
-    <!-- 3 -->
-    <section class="slide" data-i="2" aria-label="Neden kritik">
-      <p class="brand">Neden kritik?</p>
-      <h1>Geç fark etmek pahalı.</h1>
-      <ul>
-        <li>Nem / EC / tuz eğilimleri birikir</li>
-        <li>Lab yılda bir–kaç kez</li>
-        <li>Hasar görünmeden önce müdahale şart</li>
-      </ul>
-    </section>
-
-    <!-- 4 -->
-    <section class="slide" data-i="3" aria-label="Çözüm">
-      <p class="brand">Çözüm</p>
-      <h1>Sürekli + periyodik → erken içgörü.</h1>
-      <ul>
-        <li>IoT nem trendi</li>
-        <li>Lab kimyası (tamamlayıcı)</li>
-        <li>Geçmiş ürün / kullanım bağlamı</li>
-        <li>Ortak dil: risk + öneri</li>
-      </ul>
-    </section>
-
-    <!-- 5 -->
-    <section class="slide" data-i="4" aria-label="Nasıl çalışır">
-      <p class="brand">Nasıl çalışır?</p>
-      <h1>Dört kaynak. Bir karar.</h1>
-      <ul>
-        <li>Manuel · simüle IoT · test set · lab</li>
-        <li>Kural motoru + (opsiyonel) Türkçe açıklama</li>
-        <li>Senaryo karşılaştır → onaylı sanal sulama</li>
-      </ul>
-      <div class="pipeline" aria-hidden="true">
-        <span>4 kaynak</span>
-        <span class="arrow">→</span>
-        <span>Kural AI</span>
-        <span class="arrow">→</span>
-        <span>Senaryo</span>
-        <span class="arrow">→</span>
-        <span>Onay</span>
+      <p class="line">Dağınık kaynak → geç risk farkı. Hastalık reçetesi değil.</p>
+      <div class="icon-row">
+        <div class="icon-card">
+          <svg viewBox="0 0 48 48" fill="none" aria-hidden="true">
+            <circle cx="24" cy="18" r="8" stroke="#2e7d32" stroke-width="2.5"/>
+            <path d="M10 40c2-8 10-12 14-12s12 4 14 12" stroke="#2e7d32" stroke-width="2.5" stroke-linecap="round"/>
+          </svg>
+          <strong>Çiftçi</strong>
+          <span>Kararı yalnız veriyor</span>
+        </div>
+        <div class="icon-card">
+          <svg viewBox="0 0 48 48" fill="none" aria-hidden="true">
+            <path d="M8 34c6-14 12-20 16-20s10 6 16 20" stroke="#2e7d32" stroke-width="2.5" stroke-linecap="round"/>
+            <path d="M14 34h20" stroke="#81c784" stroke-width="2.5"/>
+            <circle cx="24" cy="20" r="3" fill="#2e7d32"/>
+          </svg>
+          <strong>Toprak</strong>
+          <span>Sessizce bozuluyor</span>
+        </div>
+        <div class="icon-card">
+          <svg viewBox="0 0 48 48" fill="none" aria-hidden="true">
+            <rect x="8" y="10" width="20" height="28" rx="2" stroke="#2e7d32" stroke-width="2.5"/>
+            <path d="M12 18h12M12 24h10M12 30h8" stroke="#81c784" stroke-width="2"/>
+            <circle cx="36" cy="28" r="8" stroke="#2e7d32" stroke-width="2.5"/>
+            <path d="M36 24v5l3 2" stroke="#2e7d32" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+          <strong>Hedef kitle</strong>
+          <span>Sera / tarla işletmeleri</span>
+        </div>
       </div>
     </section>
 
-    <!-- 6 -->
-    <section class="slide" data-i="5" aria-label="Canlı prototip">
-      <p class="brand">Canlı prototip</p>
+    <!-- 3 Çözüm — field node -->
+    <section class="slide photo-full" data-i="2" aria-label="Çözüm">
+      <div class="photo-chrome">
+        <p class="eyebrow">Çözüm</p>
+        <h1>Field Node · sürekli toprak verisi</h1>
+      </div>
+      <div class="vis bleed">
+        <img src="assets/field-node.png" alt="AgriTwin AI Field Node MVP patlatılmış diyagram" />
+      </div>
+    </section>
+
+    <!-- 4 Rakipler / değer -->
+    <section class="slide" data-i="3" aria-label="Değer farkı">
+      <p class="eyebrow">Değer farkı</p>
+      <h1>Sadece sensör değil. Karar platformu.</h1>
+      <table class="compare" role="table">
+        <thead>
+          <tr>
+            <th></th>
+            <th>Klasik IoT / app</th>
+            <th>AgriTwin AI</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Nem trendi</td>
+            <td class="no">Ham grafik</td>
+            <td class="yes">Risk + öneri</td>
+          </tr>
+          <tr>
+            <td>Lab</td>
+            <td class="no">Ayrı dosya</td>
+            <td class="yes">Tamamlayıcı katman</td>
+          </tr>
+          <tr>
+            <td>Sulama</td>
+            <td class="no">Otomatik riski</td>
+            <td class="yes">Yalnızca onayla</td>
+          </tr>
+          <tr>
+            <td>Dürüstlük</td>
+            <td class="no">Kaynak belirsiz</td>
+            <td class="yes">Etiketli kaynak</td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- 5 Yapay zeka / dijital ikiz -->
+    <section class="slide" data-i="4" aria-label="Yapay zeka">
+      <p class="eyebrow">Yapay zeka</p>
+      <h1>Fiziksel alan → dijital içgörü</h1>
+      <div class="split-media">
+        <div class="vis">
+          <img src="assets/digital-twin-concept.png" alt="Fiziksel saha ve dijital ikiz karşılaştırması" />
+        </div>
+        <div class="flow" aria-label="Akış">
+          <span>4 kaynak</span>
+          <span class="arr">↓</span>
+          <span>Kural motoru</span>
+          <span class="arr">↓</span>
+          <span>Risk + açıklama</span>
+          <span class="arr">↓</span>
+          <span>Onaylı sulama</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- 6 Prototip -->
+    <section class="slide" data-i="5" aria-label="Prototip">
+      <p class="eyebrow">Canlı prototip</p>
       <h1>Şimdi ekranda.</h1>
-      <ul>
-        <li>Giriş: <code>ciftci@agritwin.demo</code> / <code>Secret12</code></li>
-        <li>Domates Serası</li>
-        <li>Öneri → senaryo → onay</li>
-      </ul>
-      <div class="demo-box">
-        <a href="https://aidea-three.vercel.app" target="_blank" rel="noopener">aidea-three.vercel.app</a>
-        <p>Demo çiftçi · Domates Serası · sulama yalnızca onayla</p>
-      </div>
-    </section>
-
-    <!-- 7 -->
-    <section class="slide" data-i="6" aria-label="Neden biz">
-      <p class="brand">Neden biz?</p>
-      <h1>Platform + karar. Sadece sensör değil.</h1>
-      <ul>
-        <li>IoT lab’ın yerini almaz</li>
-        <li>Etiketli kaynak (dürüst veri)</li>
-        <li>Onaysız otomasyon yok</li>
-      </ul>
-    </section>
-
-    <!-- 8 -->
-    <section class="slide" data-i="7" aria-label="Ürün durumu">
-      <p class="brand">Bugün</p>
-      <h1>Çalışan MVP. Net sınır.</h1>
-      <div class="split">
+      <div class="proto">
+        <div class="vis">
+          <img src="assets/greenhouse-node.png" alt="Sera içinde kurulu AgriTwin alan düğümü" />
+        </div>
         <div>
-          <h3>✓ Var</h3>
-          <ul>
-            <li>Nem · sulama · lab tamamlayıcı</li>
-            <li>Malzeme kullanımı · ürün geçmişi</li>
-          </ul>
-        </div>
-        <div class="no">
-          <h3>✗ Değil</h3>
-          <ul>
-            <li>Hastalık teşhisi</li>
-            <li>Gübre reçetesi</li>
-          </ul>
+          <div class="url-box">
+            <a href="https://aidea-three.vercel.app" target="_blank" rel="noopener">aidea-three.vercel.app</a>
+            <p>ciftci@agritwin.demo · Secret12</p>
+            <p>Domates Serası → öneri → onay</p>
+          </div>
         </div>
       </div>
     </section>
 
-    <!-- 9 -->
-    <section class="slide cta" data-i="8" aria-label="CTA">
-      <p class="brand">AgriTwin AI</p>
+    <!-- 7 Yol haritası -->
+    <section class="slide" data-i="6" aria-label="Yol haritası">
+      <p class="eyebrow">Uygulanabilirlik</p>
+      <h1>MVP → saha → ölçek</h1>
+      <div class="roadmap">
+        <div class="mile">
+          <em>Şimdi</em>
+          <strong>Web MVP</strong>
+          <span>Nem, öneri, lab bağlamı, onaylı sanal sulama</span>
+        </div>
+        <div class="mile">
+          <em>Sonraki</em>
+          <strong>Field Node pilot</strong>
+          <span>Gerçek cihaz + bulut ingest + sera denemesi</span>
+        </div>
+        <div class="mile">
+          <em>Sonra</em>
+          <strong>Ölçek</strong>
+          <span>Çok tarla, abonelik, gelişmiş modeller</span>
+        </div>
+      </div>
+      <div class="lines" style="margin-top:1rem">
+        <p>✓ Nem · sulama · lab tamamlayıcı</p>
+        <p>✗ Hastalık teşhis / gübre reçetesi yok</p>
+      </div>
+    </section>
+
+    <!-- 8 İş modeli -->
+    <section class="slide" data-i="7" aria-label="İş modeli">
+      <p class="eyebrow">İş modeli</p>
+      <h1>Sabit vs değişken</h1>
+      <div class="costs">
+        <div class="cost">
+          <h3>Sabit</h3>
+          <div class="bars">
+            <div class="bar w90">Cihaz / düğüm</div>
+            <div class="bar w70">Kurulum</div>
+            <div class="bar w40">İlk entegrasyon</div>
+          </div>
+        </div>
+        <div class="cost var">
+          <h3>Değişken</h3>
+          <div class="bars">
+            <div class="bar w90">Abonelik / SaaS</div>
+            <div class="bar w55">Bulut &amp; AI</div>
+            <div class="bar w30">Destek</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 9 Kapanış + takım -->
+    <section class="slide cta" data-i="8" aria-label="Kapanış">
+      <p class="eyebrow">AgriTwin AI</p>
       <h1>Birlikte sahaya.</h1>
-      <ul>
-        <li>Pilot / geri bildirim</li>
-        <li>Demo: aidea-three.vercel.app</li>
-        <li>İletişim / sonraki adım</li>
+      <p class="line">Pilot · geri bildirim · aidea-three.vercel.app</p>
+      <ul class="team">
+        <li>Gülbahar KIRGIN</li>
+        <li class="empty">________________</li>
+        <li class="empty">________________</li>
+        <li class="empty">________________</li>
       </ul>
     </section>
   </div>
@@ -523,7 +755,7 @@
         dotsEl.appendChild(b);
       });
 
-      var dots = Array.prototype.slice.call(dotsEl.querySelectorAll(".dot"));
+      var dots = Array.prototype.slice.call(document.querySelectorAll(".dot"));
 
       function go(to) {
         if (to < 0 || to >= n || to === i) return;
@@ -532,12 +764,6 @@
         i = to;
         slides[i].classList.add("active");
         dots[i].classList.add("active");
-        var hint = document.getElementById("hint");
-        if (slides[i].classList.contains("cover") || slides[i].classList.contains("cta")) {
-          hint.style.color = "rgba(255,255,255,0.4)";
-        } else {
-          hint.style.color = "rgba(13,31,18,0.45)";
-        }
       }
 
       function next() { go(i + 1); }
@@ -569,7 +795,7 @@
       });
 
       document.getElementById("clickZone").addEventListener("click", function (e) {
-        if (e.target.closest("a, button, .nav, .demo-box")) return;
+        if (e.target.closest("a, button, .nav, .url-box")) return;
         var x = e.clientX / window.innerWidth;
         if (x < 0.28) prev();
         else next();

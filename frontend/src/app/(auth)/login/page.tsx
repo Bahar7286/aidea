@@ -201,6 +201,15 @@ export default function LoginPage() {
         <Link href="/register" className="btn btn-secondary w-full">
           Hesap Oluştur
         </Link>
+
+        <p className="text-center text-xs text-[var(--auth-muted)]">
+          <a
+            href="/pitch/"
+            className="font-semibold text-[var(--auth-accent)] underline-offset-4 hover:underline"
+          >
+            Sunum (9 sayfa)
+          </a>
+        </p>
       </div>
     </AuthSplitLayout>
   );
