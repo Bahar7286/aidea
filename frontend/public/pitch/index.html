@@ -423,39 +423,218 @@
     .bar.w40 { width: 40%; }
     .bar.w30 { width: 30%; }
 
+    /* —— Stats / impact —— */
+    .stat-row {
+      position: relative;
+      z-index: 2;
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 0.75rem;
+      margin-top: 1.1rem;
+      max-width: 52rem;
+    }
+
+    .stat {
+      background: rgba(255, 255, 255, 0.82);
+      border: 1px solid rgba(46, 125, 50, 0.22);
+      border-radius: 12px;
+      padding: 1rem 0.9rem;
+      text-align: center;
+    }
+
+    .stat b {
+      display: block;
+      font-size: clamp(1.35rem, 3vw, 2rem);
+      font-weight: 800;
+      color: var(--green-dark);
+      line-height: 1.15;
+      margin-bottom: 0.35rem;
+    }
+
+    .stat span {
+      font-size: clamp(0.82rem, 1.35vw, 0.98rem);
+      color: var(--muted);
+      font-weight: 600;
+      line-height: 1.3;
+    }
+
+    .impact-bar {
+      position: absolute;
+      z-index: 4;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 0.5rem;
+      padding: 0.75rem clamp(0.75rem, 2vw, 1.25rem);
+      background: rgba(8, 28, 21, 0.88);
+      backdrop-filter: blur(8px);
+    }
+
+    .impact-bar div {
+      text-align: center;
+      color: #fff;
+      padding: 0.35rem 0.25rem;
+    }
+
+    .impact-bar strong {
+      display: block;
+      font-size: clamp(0.95rem, 1.7vw, 1.2rem);
+      color: var(--accent);
+      margin-bottom: 0.15rem;
+    }
+
+    .impact-bar span {
+      font-size: clamp(0.7rem, 1.2vw, 0.85rem);
+      color: rgba(247, 251, 247, 0.85);
+      line-height: 1.25;
+    }
+
+    .slide.photo-full .vis.bleed img {
+      object-fit: contain;
+      padding-bottom: 4.75rem;
+    }
+
+    .sol-data {
+      position: relative;
+      z-index: 2;
+      margin-top: 0.75rem;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      max-width: 40rem;
+    }
+
+    .sol-data span {
+      background: rgba(255, 255, 255, 0.78);
+      border: 1px solid rgba(46, 125, 50, 0.28);
+      border-radius: 999px;
+      padding: 0.4rem 0.75rem;
+      font-size: clamp(0.8rem, 1.35vw, 0.95rem);
+      font-weight: 700;
+      color: var(--green-dark);
+    }
+
+    /* —— Cost model table —— */
+    .model-note {
+      position: relative;
+      z-index: 2;
+      font-size: clamp(0.75rem, 1.2vw, 0.88rem);
+      color: var(--muted);
+      font-weight: 600;
+      margin-bottom: 0.65rem;
+    }
+
+    .model-grid {
+      position: relative;
+      z-index: 2;
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 0.75rem;
+      max-width: 64rem;
+      margin-top: 0.35rem;
+    }
+
+    .model-card {
+      background: rgba(255, 255, 255, 0.85);
+      border-radius: 12px;
+      overflow: hidden;
+      border: 1px solid rgba(46, 125, 50, 0.2);
+    }
+
+    .model-card h3 {
+      background: var(--green-dark);
+      color: #fff;
+      font-size: clamp(0.9rem, 1.5vw, 1.05rem);
+      padding: 0.65rem 0.85rem;
+    }
+
+    .model-card.rev h3 { background: #1b4332; }
+
+    .model-card table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .model-card td {
+      padding: 0.45rem 0.7rem;
+      font-size: clamp(0.72rem, 1.2vw, 0.88rem);
+      border-bottom: 1px solid rgba(46, 125, 50, 0.12);
+      vertical-align: top;
+    }
+
+    .model-card tr:last-child td { border-bottom: none; }
+    .model-card td:first-child { color: var(--ink); font-weight: 600; width: 55%; }
+    .model-card td:last-child {
+      color: var(--green-dark);
+      font-weight: 800;
+      text-align: right;
+      white-space: nowrap;
+    }
+
     /* —— Closing —— */
     .slide.cta {
       background:
         radial-gradient(ellipse 70% 50% at 50% 100%, rgba(129, 199, 132, 0.35), transparent 60%),
         linear-gradient(160deg, #1b5e20 0%, #2e7d32 50%, #388e3c 100%);
       color: var(--white);
+      justify-content: center;
     }
 
     .slide.cta .eyebrow { color: var(--accent); }
-    .slide.cta h1 { color: #fff; max-width: 14ch; }
+    .slide.cta h1 { color: #fff; max-width: 16ch; }
     .slide.cta .line { color: rgba(247, 251, 247, 0.9); }
 
-    .team {
+    .close-layout {
       position: relative;
       z-index: 2;
-      margin-top: 1.5rem;
       display: grid;
-      gap: 0.55rem;
-      max-width: 28rem;
+      grid-template-columns: 1.15fr 0.85fr;
+      gap: 1.25rem;
+      align-items: center;
+      max-width: 64rem;
+      width: 100%;
     }
 
-    .team li {
+    .team-photo {
+      border-radius: 14px;
+      overflow: hidden;
+      box-shadow: 0 16px 48px rgba(0, 0, 0, 0.28);
+      background: #fff;
+      max-height: min(62vh, 520px);
+    }
+
+    .team-photo img {
+      display: block;
+      width: 100%;
+      height: 100%;
+      max-height: min(62vh, 520px);
+      object-fit: cover;
+      object-position: center 20%;
+    }
+
+    .close-copy .names {
+      margin-top: 1rem;
+      display: grid;
+      gap: 0.4rem;
+      max-width: 22rem;
+    }
+
+    .close-copy .names li {
       list-style: none;
-      font-size: clamp(1.05rem, 2vw, 1.3rem);
+      font-size: clamp(0.9rem, 1.5vw, 1.05rem);
       font-weight: 600;
       color: rgba(247, 251, 247, 0.95);
-      padding: 0.55rem 0.85rem;
+      padding: 0.4rem 0.7rem;
       border: 1px dashed rgba(255, 255, 255, 0.35);
       border-radius: 8px;
-      min-height: 2.6rem;
     }
 
-    .team li.empty { color: rgba(247, 251, 247, 0.45); font-weight: 500; }
+    .close-copy .names li.empty {
+      color: rgba(247, 251, 247, 0.4);
+      font-weight: 500;
+    }
 
     /* —— Nav —— */
     .nav {
@@ -509,10 +688,15 @@
 
     .click-zone { position: fixed; inset: 0; z-index: 5; }
 
-    @media (max-width: 800px) {
-      .split-media, .proto, .costs, .roadmap, .icon-row { grid-template-columns: 1fr; }
+    @media (max-width: 900px) {
+      .split-media, .proto, .costs, .roadmap, .icon-row,
+      .stat-row, .model-grid, .close-layout, .impact-bar { grid-template-columns: 1fr 1fr; }
       .flow { flex-direction: row; flex-wrap: wrap; justify-content: center; }
       .flow .arr { transform: rotate(90deg); }
+    }
+
+    @media (max-width: 640px) {
+      .stat-row, .model-grid, .close-layout, .impact-bar, .icon-row { grid-template-columns: 1fr; }
     }
 
     @media print {
@@ -547,46 +731,66 @@
     <section class="slide" data-i="1" aria-label="Problem">
       <p class="eyebrow">Problem</p>
       <h1>Veri var. Anlam yok.</h1>
-      <p class="line">Dağınık kaynak → geç risk farkı. Hastalık reçetesi değil.</p>
-      <div class="icon-row">
+      <p class="line">Toprak riski geç fark ediliyor — hastalık reçetesi değil, erken içgörü eksik.</p>
+      <div class="stat-row">
+        <div class="stat">
+          <b>1–2× / yıl</b>
+          <span>Lab periyodu · çoğu kez geç</span>
+        </div>
+        <div class="stat">
+          <b>%0 yorum</b>
+          <span>Sürekli nem verisi çoğu işletmede okunmuyor</span>
+        </div>
+        <div class="stat">
+          <b>Geç müdahale</b>
+          <span>EC / tuz / nem eğilimi birikir</span>
+        </div>
+      </div>
+      <div class="icon-row" style="margin-top:0.9rem">
         <div class="icon-card">
-          <svg viewBox="0 0 48 48" fill="none" aria-hidden="true">
-            <circle cx="24" cy="18" r="8" stroke="#2e7d32" stroke-width="2.5"/>
-            <path d="M10 40c2-8 10-12 14-12s12 4 14 12" stroke="#2e7d32" stroke-width="2.5" stroke-linecap="round"/>
-          </svg>
           <strong>Çiftçi</strong>
-          <span>Kararı yalnız veriyor</span>
+          <span>IoT + lab dağınık</span>
         </div>
         <div class="icon-card">
-          <svg viewBox="0 0 48 48" fill="none" aria-hidden="true">
-            <path d="M8 34c6-14 12-20 16-20s10 6 16 20" stroke="#2e7d32" stroke-width="2.5" stroke-linecap="round"/>
-            <path d="M14 34h20" stroke="#81c784" stroke-width="2.5"/>
-            <circle cx="24" cy="20" r="3" fill="#2e7d32"/>
-          </svg>
           <strong>Toprak</strong>
           <span>Sessizce bozuluyor</span>
         </div>
         <div class="icon-card">
-          <svg viewBox="0 0 48 48" fill="none" aria-hidden="true">
-            <rect x="8" y="10" width="20" height="28" rx="2" stroke="#2e7d32" stroke-width="2.5"/>
-            <path d="M12 18h12M12 24h10M12 30h8" stroke="#81c784" stroke-width="2"/>
-            <circle cx="36" cy="28" r="8" stroke="#2e7d32" stroke-width="2.5"/>
-            <path d="M36 24v5l3 2" stroke="#2e7d32" stroke-width="2" stroke-linecap="round"/>
-          </svg>
-          <strong>Hedef kitle</strong>
+          <strong>Hedef</strong>
           <span>Sera / tarla işletmeleri</span>
         </div>
       </div>
     </section>
 
-    <!-- 3 Çözüm — field node -->
+    <!-- 3 Çözüm — field node + etki -->
     <section class="slide photo-full" data-i="2" aria-label="Çözüm">
       <div class="photo-chrome">
         <p class="eyebrow">Çözüm</p>
-        <h1>Field Node · sürekli toprak verisi</h1>
+        <h1>Sürekli veri → erken içgörü</h1>
+        <p class="line" style="color:rgba(247,251,247,0.85);margin:0.35rem 0 0;font-size:clamp(0.85rem,1.4vw,1rem)">
+          IoT + lab + AI · sulama yalnız onayla
+        </p>
       </div>
       <div class="vis bleed">
         <img src="assets/field-node.png" alt="AgriTwin AI Field Node MVP patlatılmış diyagram" />
+      </div>
+      <div class="impact-bar" aria-label="Çözümün katkısı">
+        <div>
+          <strong>%10–30</strong>
+          <span>Su tasarrufu potansiyeli*</span>
+        </div>
+        <div>
+          <strong>Erken uyarı</strong>
+          <span>Nem · EC · tuz trendi</span>
+        </div>
+        <div>
+          <strong>Zaman</strong>
+          <span>Karar dakikalar içinde</span>
+        </div>
+        <div>
+          <strong>Güven</strong>
+          <span>Onaysız otomasyon yok</span>
+        </div>
       </div>
     </section>
 
@@ -694,39 +898,63 @@
 
     <!-- 8 İş modeli -->
     <section class="slide" data-i="7" aria-label="İş modeli">
-      <p class="eyebrow">İş modeli</p>
-      <h1>Sabit vs değişken</h1>
-      <div class="costs">
-        <div class="cost">
-          <h3>Sabit</h3>
-          <div class="bars">
-            <div class="bar w90">Cihaz / düğüm</div>
-            <div class="bar w70">Kurulum</div>
-            <div class="bar w40">İlk entegrasyon</div>
-          </div>
+      <p class="eyebrow">İş modeli · MVP tahmini</p>
+      <h1>Sabit · değişken · gelir</h1>
+      <p class="model-note">Varsayımlar · ödeme gateway yok (uygulamada Free/Pro demo) · *tahmini aylık TRY</p>
+      <div class="model-grid">
+        <div class="model-card">
+          <h3>Sabit (ay)</h3>
+          <table>
+            <tr><td>Hosting (Vercel + Render + Supabase)</td><td>0,8–2,5k ₺</td></tr>
+            <tr><td>Domain</td><td>50–150 ₺</td></tr>
+            <tr><td>OpenRouter AI</td><td>0,3–1,5k ₺</td></tr>
+            <tr><td>Hukuki / muhasebe</td><td>1–3k ₺</td></tr>
+            <tr><td>Geliştirme amortismanı</td><td>5–15k ₺</td></tr>
+            <tr><td>Ofis</td><td>~0 ₺</td></tr>
+          </table>
         </div>
-        <div class="cost var">
+        <div class="model-card">
           <h3>Değişken</h3>
-          <div class="bars">
-            <div class="bar w90">Abonelik / SaaS</div>
-            <div class="bar w55">Bulut &amp; AI</div>
-            <div class="bar w30">Destek</div>
-          </div>
+          <table>
+            <tr><td>Field Node BOM</td><td>3,5–7k ₺/cihaz</td></tr>
+            <tr><td>Kargo</td><td>150–400 ₺</td></tr>
+            <tr><td>Destek</td><td>250–500 ₺/saat</td></tr>
+            <tr><td>SIM / veri (ops.)</td><td>100–300 ₺/ay</td></tr>
+            <tr><td>Satış komisyonu</td><td>%5–10</td></tr>
+          </table>
+        </div>
+        <div class="model-card rev">
+          <h3>Gelir</h3>
+          <table>
+            <tr><td>Free</td><td>0 ₺</td></tr>
+            <tr><td>Pro abonelik</td><td>499–1.499 ₺/ay</td></tr>
+            <tr><td>Cihaz satışı</td><td>BOM × 1,4–1,8</td></tr>
+            <tr><td>Cihaz kiralama</td><td>299–599 ₺/ay</td></tr>
+            <tr><td>Kooperatif paket</td><td>4,9–14,9k ₺/ay</td></tr>
+          </table>
         </div>
       </div>
     </section>
 
     <!-- 9 Kapanış + takım -->
     <section class="slide cta" data-i="8" aria-label="Kapanış">
-      <p class="eyebrow">AgriTwin AI</p>
-      <h1>Birlikte sahaya.</h1>
-      <p class="line">Pilot · geri bildirim · aidea-three.vercel.app</p>
-      <ul class="team">
-        <li>Gülbahar KIRGIN</li>
-        <li class="empty">________________</li>
-        <li class="empty">________________</li>
-        <li class="empty">________________</li>
-      </ul>
+      <div class="close-layout">
+        <div class="team-photo">
+          <img src="assets/team.png" alt="AgriTwin AI ekip fotoğrafı" />
+        </div>
+        <div class="close-copy">
+          <p class="eyebrow">AgriTwin AI</p>
+          <h1>Birlikte sahaya.</h1>
+          <p class="line">Pilot · geri bildirim · aidea-three.vercel.app</p>
+          <ul class="names">
+            <li>Gülbahar KIRGIN</li>
+            <li class="empty">________________</li>
+            <li class="empty">________________</li>
+            <li class="empty">________________</li>
+            <li class="empty">________________</li>
+          </ul>
+        </div>
+      </div>
     </section>
   </div>
 
