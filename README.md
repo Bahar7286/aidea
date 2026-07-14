@@ -2,7 +2,9 @@
 
 AgriTwin AI, çiftçinin manuel olarak girdiği arazi, ürün ve toprak verilerini; IoT/bulut sistemlerinden alınan veya prototipte simüle edilen sensör verilerini ve ekip tarafından hazırlanmış test veri setlerini tek platformda birleştirerek sulama ihtiyacını ve toprak risklerini yapay zekâ ile analiz eden web tabanlı tarım karar destek sistemidir.
 
-MVP, toprağın tüm fiziksel, kimyasal ve biyolojik özelliklerini modellemeyi değil; **toprak nemi ve sulama kararına odaklanan sınırlı fakat çalışan bir dijital ikiz prototipi** geliştirmeyi amaçlar.
+MVP, toprağın tüm fiziksel, kimyasal ve biyolojik özelliklerini modellemeyi değil; **toprak nemi ve sulama kararına odaklanan çalışan bir dijital ikiz prototipi** geliştirmeyi amaçlar. Gübre **reçetesi** üretilmez; arazi malzeme kaydı yalnızca kullanım/AI bağlamıdır.
+
+**Canlı demo:** Frontend [aidea-three.vercel.app](https://aidea-three.vercel.app) · API [aidea-f8ji.onrender.com](https://aidea-f8ji.onrender.com) · Durum kaynağı: [`Progress.md`](Progress.md).
 
 ---
 
@@ -39,32 +41,31 @@ AgriTwin AI, bu sorunu verileri tek platformda birleştirerek, sulama ihtiyacın
 
 ---
 
-## MVP Özellikleri
+## MVP Özellikleri (as-built)
 
-### Çalışan (yerel)
+### Çalışan (yerel + canlı)
 
-- Kullanıcı kayıt ve giriş
-- Arazi oluşturma
-- Manuel toprak ve çevre verisi girişi
-- IoT/bulut veri akışı simülasyonu (API + UI butonu)
-- Hazır test veri setleri (`ai/datasets`)
-- Veri doğrulama ve güven skoru
-- Kural tabanlı sulama ihtiyacı tahmini
-- 24 / 48 / 72 saatlik nem tahmini (metin)
-- Risk analizi ve anomali uyarıları
-- Açıklanabilir AI önerileri
-- Sulama senaryo simülasyonu
-- Kullanıcı onaylı sanal sulama + geçmiş
-- Dashboard / arazi detay ekranı
+- Auth: kayıt / doğrulama / giriş / demo-login (4 persona)
+- Arazi CRUD, bölgeler (zones), ürün bilgisi
+- Manuel veri + IoT simülasyonu + test dataset load
+- Laboratuvar: dosya zorunlu `lab_report` + manuel; birim + kullanıcı onayı
+- Gübre/ilaç **sınıf** kataloğu + farm association (reçete yok)
+- Ürün sezon geçmişi + sonraki ürün önerileri (rotasyon; reçete yok)
+- Cihaz yönetimi (liste / ekle / detay / kalibrasyon) + `/iot/ingest`
+- Kural tabanlı sulama tahmini + isteğe bağlı OpenRouter Türkçe açıklama
+- 24 / 48 / 72 saat nem (Recharts) · Open-Meteo hava
+- Risk / anomali · senaryo karşılaştırma · onaylı sanal sulama
+- Leaflet OSM haritalar (dashboard / twin / landing)
+- Hub (rapor/KPI/tasarruf), abonelik plan seçimi (ödeme yok)
+- Admin shell A01–A08
 
-### Henüz tamamlanmayan
+### Kalan / dürüst boşluklar
 
-- Canlı (prod) URL
-- Su kullanımı / tasarruf rapor ekranı
-- Ayrı IoT cihaz yönetim ekranı
-- Recharts grafikleri / dijital ikiz haritası
 - ML modeli (Scikit-learn / XGBoost)
-- Laboratuvar raporu yükleme / manuel lab girişi (P1 — `veri-mimarisi.md`)
+- Gerçek OCR / lab PDF hard parse
+- Gerçek ödeme sağlayıcısı
+- Üretim sertleştirme (Sentry, gerçek SMTP, MQTT, gerçek sensör)
+- Sunum demosu / prova
 
 ---
 
@@ -239,35 +240,35 @@ Otomasyon şu işlemleri gerçekleştirir:
 
 ---
 
-## Teknik Mimari
+## Teknik Mimari (as-built)
 
-### Frontend (mevcut)
+### Frontend
 
 - Next.js App Router + TypeScript + Tailwind CSS
-- shadcn/ui ve Recharts: planlı (henüz eklenmedi)
+- Recharts + Leaflet/OSM (Google Maps opsiyonel env)
+- AppShell / AdminShell; ~39 `page.tsx` rotası (`ekran-haritasi.md` §7)
 
-### Backend (mevcut)
+### Backend
 
-- Python + FastAPI + SQLAlchemy 2.0 + JWT
-- Varsayılan DB: SQLite; üretim için Supabase PostgreSQL
+- Python + FastAPI + SQLAlchemy 2.0 + JWT (API ≈ 0.5.x)
+- Yerel SQLite; prod Supabase PostgreSQL (`psycopg2-binary`)
 
-### Yapay Zekâ (mevcut → sonraki)
+### Yapay Zekâ
 
-- Şimdi: kural tabanlı motor + açıklama + güven skoru
-- Sonra: Scikit-learn / XGBoost (opsiyonel)
+- Kural motoru (güvenlik tabanı) + anomali kuralları
+- İsteğe bağlı OpenRouter açıklama (`OPENROUTER_API_KEY`)
+- ML (Scikit-learn / XGBoost): sonraki faz
 
-### IoT Simülasyonu (mevcut)
+### Veri / IoT / hava
 
-- REST: `POST /iot/simulate` (`source_type: simulation`)
-- CLI: `iot/simulator/simulate.py`
+- `POST /iot/simulate`, `/iot/ingest`, datasets; `source_type` etiketli
+- Open-Meteo weather; CLI `iot/simulator/simulate.py`
 - MQTT: sonraki faz
 
-### Canlıya Alma (hedef)
+### Canlıya alma
 
-- Frontend: Vercel
-- Backend: Render veya Railway
-- Veritabanı: Supabase
-- Ayrıntılı dış bağımlılık / adım planı: [`GO_LIVE_PLAN.md`](GO_LIVE_PLAN.md)
+- Frontend: Vercel · Backend: Render · DB: Supabase
+- Plan / env: [`GO_LIVE_PLAN.md`](GO_LIVE_PLAN.md) · Demo: [`DEMO_USERS.md`](DEMO_USERS.md)
 
 ---
 
@@ -384,84 +385,14 @@ AgriTwin/
 
 ---
 
-## API Taslağı
+## API (özet)
 
-Canlı API: `http://localhost:8000/docs` (sürüm 0.3)
+Yerel: `http://localhost:8000/docs` · Prod: `https://aidea-f8ji.onrender.com/docs` (API ≈ 0.5.x).
 
-### Kimlik Doğrulama
+Öne çıkan uçlar: `/auth/*` (demo-login dahil), `/farms/*`, `/agro-materials`, `/billing/*`, `/sensor-readings/*`, `/datasets`, `/weather/{farm_id}`, `/predict/irrigation`, `/simulate/scenario`, `/irrigation/*`, `/devices/*`, `/iot/simulate|ingest`, `/zones`, `/lab-reports/*`, `/admin/*`, `/hub/{farm_id}`.
 
-```http
-POST /auth/register
-POST /auth/login
-GET  /auth/me
-```
+Tam liste: [`backend/README.md`](backend/README.md) · `prd.md` §14.
 
-### Arazi
-
-```http
-POST /farms
-GET /farms
-GET /farms/{id}
-PUT /farms/{id}
-DELETE /farms/{id}
-```
-
-### Sensör Verisi
-
-```http
-POST /sensor-readings/{farm_id}
-GET /sensor-readings/{farm_id}
-POST /iot/simulate
-```
-
-### AI Tahmini
-
-```http
-POST /predict/irrigation?farm_id=
-GET /predictions/{farm_id}
-GET /anomalies/{farm_id}
-```
-
-### Senaryo Simülasyonu
-
-```http
-POST /simulate/scenario
-```
-
-### Sulama
-
-```http
-POST /irrigation/start
-POST /irrigation/stop
-GET /irrigation/history/{farm_id}
-```
-
-### Cihaz Yönetimi
-
-```http
-POST /devices
-GET /devices/{farm_id}
-POST /devices/test-connection
-```
-
-### Laboratuvar ve bölgeler (P1)
-
-```http
-POST /zones
-GET /zones/{farm_id}
-POST /lab-reports
-GET /lab-reports/{farm_id}
-POST /lab-reports/{id}/confirm
-```
-
-### Field Node ingest
-
-```http
-POST /iot/simulate
-POST /iot/ingest
-```
-
-Referans: `iot-mimarisi.md`, `veri-mimarisi.md`
 ---
 
 ## Kurulum
@@ -502,12 +433,14 @@ DATABASE_URL=sqlite:///./agritwin.db
 SECRET_KEY=change-me-to-a-long-random-string
 ACCESS_TOKEN_EXPIRE_MINUTES=1440
 CORS_ORIGINS=http://localhost:3000
+SEED_DEMO_USERS=1
+# OPENROUTER_API_KEY=   # optional hybrid explanations
 
 # frontend/.env.local
 NEXT_PUBLIC_API_URL=http://localhost:8000
 ```
 
-Opsiyonel Supabase alanları `.env.example` içinde tanımlıdır. Gerçek anahtarlar depoya yüklenmemelidir.
+Prod: Postgres `DATABASE_URL` + Vercel origin CORS. Gerçek anahtarlar depoya yüklenmemelidir.
 
 ---
 

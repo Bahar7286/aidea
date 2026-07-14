@@ -1,6 +1,9 @@
 # AGRITWIN AI — İŞ GELİŞTİRME VE ÜRÜN CANVASI
 
-> **Kapsam notu:** Bu canvas strateji ve uzun vadeli vizyonu içerir. **MVP bağlayıcı kapsam** `mvp.md`, `prd.md`, `veri-mimarisi.md`, `AGENTS.md` ve `.cursor/rules/agritwin-core.mdc` dosyalarındadır (sulama + nem odaklı; laboratuvar IoT’yi tamamlar, gübre reçetesi MVP dışı).
+> **Kapsam notu (okuma sırası):** Bu canvas strateji ve **uzun vadeli vizyon** içerir.  
+> **Shipped MVP (as-built)** için bağlayıcı kaynaklar: `mvp.md`, `prd.md`, `Progress.md`, `techstack.md`, `AGENTS.md`, `.cursor/rules/agritwin-core.mdc`.  
+>  
+> **MVP as-built vs vizyon (kısa):** Canlı ürün nem/sulama karar destek prototipidir (auth, farm, simüle IoT, lab, senaryo, onaylı sanal sulama, Leaflet/OSM, Open-Meteo, kural+OpenRouter açıklama, malzemeler=kullanım kaydı, admin/abonelik UI). Uydu/drone/gübre **reçetesi**/verim/tam otomatik sulama canvas vizyonundadır — **shipped değildir**. Laboratuvar IoT’nin yerini almaz.
 
 ## 1. Proje Adı
 
@@ -773,40 +776,21 @@ AgriTwin AI’ın rekabet avantajı:
 
 ## 24. MVP Teknik Mimarisi
 
-### Frontend
+### As-built (shipped)
 
-- React / Next.js
-- Alternatif hızlı prototip: Streamlit
+- Frontend: Next.js + TypeScript + Tailwind + Recharts + Leaflet/OSM
+- Backend: FastAPI + JWT
+- DB: SQLite (yerel) / Supabase Postgres (prod)
+- AI: Kural motoru + opsiyonel OpenRouter açıklama (ML vizyon / P2)
+- IoT: REST simülasyon + ingest (MQTT vizyon)
+- Hava: Open-Meteo
+- Deploy: Vercel + Render + Supabase
 
-### Backend
+### Vizyon / sonraki (canvas)
 
-- Python
-- FastAPI
-
-### Veritabanı
-
-- Supabase
-- PostgreSQL
-- Alternatif: SQLite
-
-### Yapay zekâ
-
-- Random Forest
-- XGBoost
-- Regresyon
-- Isolation Forest
-
-### IoT simülasyonu
-
-- MQTT
-- REST API
-- Zamanlanmış Python scripti
-
-### Canlıya alma
-
-- Frontend: Vercel
-- Backend: Render / Railway
-- Veritabanı: Supabase
+- Random Forest / XGBoost / Isolation Forest (eğitimli modeller)
+- MQTT broker + gerçek saha düğümü
+- Uydu / drone katmanları (MVP dışı)
 
 ---
 

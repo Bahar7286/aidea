@@ -721,9 +721,9 @@ Jüriye kısa, net ve hatasız bir demo sunmak.
 
 ## 6. Önceliklendirme
 
-## P0 — Zorunlu
+### P0 — Zorunlu
 
-- Kayıt/giriş
+- Kayıt/giriş / demo-login
 - Arazi oluşturma
 - Manuel veri girişi
 - IoT simülasyonu
@@ -732,28 +732,31 @@ Jüriye kısa, net ve hatasız bir demo sunmak.
 - 72 saatlik tahmin
 - Senaryo simülasyonu
 - Sanal sulama
-- Canlıya alma
+- Canlıya alma — **tamam** (Vercel + Render)
 
 ## P1 — Önemli
 
-- [x] Laboratuvar raporu / manuel lab girişi (API + UI; OCR yok)
+- [x] Laboratuvar raporu / manuel lab girişi (API + UI; dosya zorunlu; gerçek OCR yok)
 - [x] Yönetim bölgeleri (`/zones`)
 - [x] Field Node JSON ingest (`POST /iot/ingest`, çift derinlik)
+- [x] Agro malzemeler (reçetesiz kullanım kaydı)
+- [x] Open-Meteo + Leaflet OSM
+- [x] OpenRouter hibrit açıklama (opsiyonel)
 - Anomali tespiti (temel tamam; veri kesintisi kısmi)
 - Güven skoru (lab puanı — kısmi)
 - Sulama geçmişi (tamam)
-- Su tasarrufu raporu
-- Cihaz bağlantı ekranı
+- Su tasarrufu raporu (hub KPI tamam)
+- Cihaz bağlantı ekranı (tamam)
 - Field Node Lite firmware (donanım — `iot-mimarisi.md`)
 
 ## P2 — Sonraki sürüm
 
-- Gerçek sensör entegrasyonu
-- Gerçek hava durumu API’si
-- Lab OCR / lab API
-- pH/EC gelişmiş yorum + mikroelementler
-- Çoklu tarla
+- Gerçek sensör entegrasyonu / MQTT
+- Gerçek OCR / lab API
+- Gerçek ödeme
+- ML (Scikit-learn / XGBoost)
 - Uydu ve drone
+- Gübre reçetesi (ayrı ürün)
 
 ---
 
@@ -818,7 +821,7 @@ Bir özellik tamamlanmış sayılır, eğer:
 - Demo akışına dahil edilebiliyorsa
 - `Progress.md` güncellenmişse
 
-Not: §10 checklist’te `[x]` olan maddeler mevcut yerel MVP dilimine göredir; canlı URL ve rapor ekranı hâlâ açıktır.
+Not: §10 checklist’te `[x]` olan maddeler as-built MVP’ye göredir. Canlı URL ve demo hesap tamam; sunum provası açıktır.
 
 ---
 
@@ -841,14 +844,14 @@ Not: §10 checklist’te `[x]` olan maddeler mevcut yerel MVP dilimine göredir;
 - [x] Senaryo simülasyonu
 - [x] Sanal vana
 - [x] Sulama geçmişi
-- [ ] Su kullanımı raporu
-- [x] Laboratuvar analizi (manuel lab + birim + onay) — P1 API/UI
-- [ ] Lab PDF yükleme / OCR — P2
+- [x] Su kullanımı raporu (hub KPI)
+- [x] Laboratuvar analizi (manuel + dosya + birim + onay) — gerçek OCR P2
+- [ ] Lab OCR (gerçek) — P2
 - [x] IoT Field Node mimari dokümanı (`iot-mimarisi.md`)
 - [x] `POST /iot/ingest` + yönetim bölgeleri
 - [x] Dashboard
-- [ ] Canlı URL
-- [ ] Demo hesabı
+- [x] Canlı URL
+- [x] Demo hesabı
 - [ ] Sunum demosu
 
 ---

@@ -13,6 +13,8 @@ Her hesap **farklı, gerçekçi** arazi verisi taşır (klon değil).
 
 Simülasyon okumaları API/UI’da `source_type: simulation` ile etiketlenir. Sanal sulama kullanıcı onayı olmadan başlamaz.
 
+Canlı: `https://aidea-three.vercel.app` (API: `https://aidea-f8ji.onrender.com`). Agro malzemeler demo tarlalarda kullanım kaydı olarak seed edilir; gübre reçetesi yoktur.
+
 ## Oluşturma
 
 ```bash

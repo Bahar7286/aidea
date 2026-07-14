@@ -76,6 +76,10 @@ neden olabilir.
 15. Sulama geçmişi
 16. Su kullanımı ve tahmini tasarruf raporu
 17. Canlıya alınmış web uygulaması
+18. Laboratuvar analizi (dosya/manuel, birim + onay; gübre reçetesi yok)
+19. Arazi malzeme kataloğu (kullanım kaydı + AI bağlamı)
+20. Admin paneli + abonelik plan seçimi (gerçek ödeme yok)
+21. Open-Meteo hava + Leaflet OSM haritalar
 
 ---
 
@@ -587,42 +591,19 @@ Giriş · Hesap oluştur · İlk arazi · Dashboard · Arazilerim · Yeni arazi 
 
 ---
 
-## 13. MVP Teknik Mimarisi
+## 13. MVP Teknik Mimarisi (as-built)
 
-### Frontend
+| Katman | Tercih |
+|--------|--------|
+| Frontend | Next.js App Router + TypeScript + Tailwind + Recharts + Leaflet/OSM |
+| Backend | FastAPI + JWT (API ≈ 0.5.x) |
+| DB | SQLite yerel · Supabase PostgreSQL prod |
+| AI | Kural motoru + opsiyonel OpenRouter açıklama · ML sonra |
+| Hava | Open-Meteo |
+| IoT | REST simulate + ingest · MQTT sonra |
+| Deploy | Vercel + Render + Supabase |
 
-- Next.js veya React
-- Alternatif hızlı çözüm: Streamlit
-
-### Backend
-
-- Python
-- FastAPI
-
-### Veritabanı
-
-- Supabase
-- PostgreSQL
-- Alternatif: SQLite
-
-### Yapay zekâ
-
-- Random Forest
-- XGBoost
-- Regresyon
-- Isolation Forest
-
-### IoT simülasyonu
-
-- MQTT
-- REST API
-- Zamanlanmış Python scripti
-
-### Canlıya alma
-
-- Frontend: Vercel
-- Backend: Render veya Railway
-- Veritabanı: Supabase
+Ek özellikler (nem/sulama odaklı kalır): lab (dosya + onay), zones/devices, agro malzemeler (reçetesiz), hub/admin, abonelik plan UI (ödeme yok).
 
 ---
 

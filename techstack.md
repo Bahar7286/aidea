@@ -8,6 +8,23 @@ Temel hedef:
 
 > Hızlı geliştirilebilen, canlıya alınabilen, yapay zekâ, veri, IoT simülasyonu ve kullanıcı arayüzünü tek sistemde birleştiren sade ve sürdürülebilir bir teknik yapı kurmak.
 
+### As-built (2026-07 — bağlayıcı durum)
+
+| Katman | Gerçekte kullanılan |
+|--------|---------------------|
+| Frontend | Next.js App Router + TypeScript + Tailwind + Recharts + Leaflet/OSM |
+| Backend | FastAPI + Pydantic v2 + SQLAlchemy 2.0 + JWT (API ≈ 0.5.x) |
+| DB | Yerel SQLite; prod Supabase PostgreSQL (`psycopg2-binary`) |
+| AI | Kural motoru + anomali kuralları; isteğe bağlı **OpenRouter** Türkçe açıklama (sayısal karar kurallarda kalır) |
+| Hava | **Open-Meteo** (`GET /weather/{farm_id}`) |
+| IoT | REST `/iot/simulate` + `/iot/ingest` + CLI; MQTT yok |
+| Auth | JWT (Supabase Auth değil) |
+| Deploy | Vercel + Render + Supabase |
+| Abonelik | Plan seçimi API/UI; gerçek ödeme yok |
+| Gübre | Agro malzemeler = kullanım kaydı + AI bağlamı; **reçete yok** |
+
+Aşağıdaki bölümlerin bir kısmı tarihsel “öneri” dilinde kalabilir; çelişki olursa **bu tablo + `Progress.md`** esas alınır.
+
 ---
 
 ## 2. Teknik Yaklaşım
@@ -33,22 +50,22 @@ AgriTwin AI MVP’si aşağıdaki katmanlardan oluşacaktır:
 | Katman | Teknoloji | Kullanım Amacı |
 |---|---|---|
 | Frontend | Next.js + TypeScript | Kullanıcı arayüzü ve web uygulaması |
-| UI | Tailwind CSS + shadcn/ui | Hızlı ve tutarlı arayüz geliştirme |
+| UI | Tailwind CSS (+ shadcn opsiyonel) | Hızlı ve tutarlı arayüz |
 | Backend | FastAPI | REST API ve iş mantığı |
-| Veritabanı | PostgreSQL + Supabase | Veri saklama ve kullanıcı yönetimi |
-| ORM | SQLAlchemy | Veritabanı modelleri ve sorgular |
-| AI/ML | Python + Scikit-learn + XGBoost | Tahmin ve risk analizi |
-| Veri İşleme | Pandas + NumPy | Veri temizleme ve özellik üretme |
-| Açıklanabilir AI | Kural tabanlı metin + güven skoru (SHAP P2) | Model kararlarını açıklama |
-| IoT Simülasyonu | MQTT + Python Script | Sensör veri akışını simüle etme |
-| Grafikler | Recharts | Nem, risk ve senaryo grafikleri |
-| Harita | Leaflet / React Leaflet | Arazi konumu ve bölgesel görünüm |
-| Kimlik Doğrulama | Supabase Auth veya JWT | Kayıt ve giriş |
-| Frontend Deploy | Vercel | Web uygulamasını canlıya alma |
-| Backend Deploy | Render veya Railway | FastAPI servislerini çalıştırma |
-| Veritabanı Hosting | Supabase | PostgreSQL ve Auth |
-| Test | Pytest + Vitest | Backend, AI ve frontend testleri |
-| Kod Yönetimi | GitHub | Sürüm kontrolü ve ekip çalışması |
+| Veritabanı | SQLite (yerel) / Supabase PostgreSQL (prod) | Veri saklama |
+| ORM | SQLAlchemy 2.0 | Modeller ve sorgular |
+| AI (şimdi) | Kural motoru + OpenRouter (açıklama) | Sulama kararı + Türkçe gerekçe |
+| AI (sonra) | Scikit-learn + XGBoost | ML sınıflandırma / regresyon |
+| Veri İşleme | Pandas + NumPy (dataset / araçlar) | Test setleri |
+| IoT | REST simulate + ingest | Sensör simülasyonu |
+| Hava | Open-Meteo | Yağış / sıcaklık girdisi |
+| Grafikler | Recharts | Nem, risk, geçmiş |
+| Harita | Leaflet / React Leaflet + OSM | Arazi konumu |
+| Kimlik Doğrulama | JWT (FastAPI) | Kayıt ve giriş |
+| Frontend Deploy | Vercel | Canlı UI |
+| Backend Deploy | Render | Canlı API |
+| Test | Pytest (+ Vitest/Playwright planlı) | Backend yeşil |
+| Kod Yönetimi | GitHub | `Bahar7286/aidea` |
 
 ---
 
@@ -214,55 +231,20 @@ işlevlerini yönetecektir.
 
 ## 8. API Yapısı
 
-MVP API öneki yoktur; uçlar kökte yayınlanır (`http://localhost:8000`).
+MVP API öneki yoktur; uçlar kökte yayınlanır (`http://localhost:8000`, prod Render host).
 
 ```text
-/auth/
-/farms/
-/sensor-readings/{farm_id}
-/iot/simulate
-/predict/irrigation
-/predictions/{farm_id}
-/anomalies/{farm_id}
-/simulate/scenario
-/irrigation/
-/devices/
-/health
+/auth/          /farms/           /agro-materials
+/billing/       /sensor-readings/ /datasets /weather/{farm_id}
+/iot/simulate   /iot/ingest       /predict/irrigation
+/predictions/   /anomalies/       /simulate/scenario
+/irrigation/    /devices/         /zones /lab-reports/
+/recommendations/ /hub/           /admin/ /health
 ```
 
-### Temel API uçları
+Auth ek: `POST /auth/demo-login`. Lab: dosya zorunlu upload + confirm. Billing: plan seçimi (ödeme yok).
 
-```http
-POST /auth/register
-POST /auth/login
-GET  /auth/me
-
-POST /farms
-GET /farms
-GET /farms/{id}
-PUT /farms/{id}
-DELETE /farms/{id}
-
-POST /sensor-readings/{farm_id}
-GET /sensor-readings/{farm_id}
-POST /iot/simulate
-
-POST /predict/irrigation?farm_id=
-GET /predictions/{farm_id}
-GET /anomalies/{farm_id}
-
-POST /simulate/scenario
-
-POST /irrigation/start
-POST /irrigation/stop
-GET /irrigation/history/{farm_id}
-
-POST /devices
-GET /devices/{farm_id}
-POST /devices/test-connection
-```
-
-Not: `/api/v1` öneki gelecekte eklenebilir; şu an kullanılmamaktadır.
+Not: `/api/v1` öneki yok. Ayrıntı: `backend/README.md`, `prd.md` §14.
 
 ---
 
@@ -326,7 +308,7 @@ Supabase şu amaçlarla kullanılabilir:
 
 ### Karar
 
-> MVP için Supabase PostgreSQL önerilir.
+> **Yerel MVP:** SQLite. **Prod:** Supabase PostgreSQL (`DATABASE_URL`). Auth ayrı katmanda JWT’dir; Supabase Auth kullanılmıyor.
 
 ---
 
@@ -574,33 +556,13 @@ python iot/simulator/simulate.py --token <JWT> --farm-id 1 --scenario drought_ri
 
 ## 19. Hava Durumu Verisi
 
-MVP’de iki seçenek vardır:
+### As-built
 
-### Seçenek 1 — Kullanıcı Girdisi
-
-Kullanıcı:
-
-- Hava sıcaklığı
-- Hava nemi
-- Yağış ihtimali
-
-değerlerini manuel girer.
-
-### Seçenek 2 — Hava Durumu API’si
-
-İleri aşamada gerçek hava verisi alınabilir.
-
-Olası servisler:
-
-- OpenWeather
-- WeatherAPI
-- Meteoroloji Genel Müdürlüğü açık verileri
+Open-Meteo (ücretsiz, API key yok) → `GET /weather/{farm_id}`; dashboard / canlı sensör UI kullanır. Manuel giriş ve okuma alanlarındaki yağış ihtimali de desteklenir.
 
 ### Karar
 
-> MVP’de kullanıcı girdisi ve kontrollü test verisi kullanılmalıdır.
-
-Gerçek hava durumu API’si P1 veya Faz 2 özelliği olmalıdır.
+> MVP’de Open-Meteo + kullanıcı/sensör girdisi birlikte kullanılır. OpenWeather vb. opsiyonel alternatif olarak kalabilir.
 
 ---
 
@@ -656,11 +618,7 @@ Kullanım alanları:
 
 ### Karar
 
-> MVP’de basit React Leaflet haritası yeterlidir.
-
-Gerçek koordinat yoksa:
-
-> Tarla bölgesi kart veya grid tabanlı gösterilebilir.
+> **As-built:** Leaflet + OSM (dashboard, twin, landing, auth görseli). Google Maps yalnızca opsiyonel `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`. Uydu katmanı / poligon çizimi P2.
 
 ---
 
@@ -685,9 +643,7 @@ Kullanım alanları:
 
 ### Karar
 
-> En hızlı MVP için Supabase Auth kullanılmalıdır.
-
-Backend kontrolü için JWT doğrulaması eklenebilir.
+> **As-built:** FastAPI JWT. Supabase Auth P2 / opsiyonel migrasyon konusu; go-live için zorunlu değil.
 
 ---
 
@@ -985,35 +941,31 @@ Hackathon için önerilen ana yapı:
 
 ## 34. Teknik Öncelik Sırası
 
-### P0 — Zorunlu (MVP çalışır dilim)
+### P0 — Zorunlu (MVP çalışır dilim) — çoğunlukla tamam
 
-- Next.js + FastAPI
-- SQLite veya PostgreSQL
-- Kural tabanlı AI motoru
+- Next.js + FastAPI + JWT
+- SQLite yerel / Postgres prod
+- Kural tabanlı AI + sanal sulama onayı
 - IoT REST simülasyonu
-- Senaryo + sanal sulama API/UI
-- Yerel çalışır demo
+- Senaryo + lab + zones + devices + hub
+- Canlıya alma (Vercel + Render) — yapılmış
 
-### P1 — Önemli
+### P1 — Önemli — çoğu tamam
 
-- Recharts
-- shadcn/ui
-- Veri güven skoru (UI genişletme)
-- Anomali UI iyileştirmeleri
-- Su tasarrufu raporu
-- Canlıya alma (Vercel/Render)
+- Recharts, Leaflet/OSM, Open-Meteo
+- Lab dosya yükleme (heuristik; gerçek OCR yok)
+- Agro malzemeler (reçetesiz)
+- OpenRouter açıklama (opsiyonel)
+- Abonelik plan UI (ödeme yok)
+- Admin panel
 
 ### P2 — Sonraki Faz
 
-- Scikit-learn / XGBoost
-- SHAP
-- MQTT
-- Supabase Auth
-- React Leaflet
-- Gerçek hava durumu API’si
-- Gerçek sensör entegrasyonu
-- Docker
-- Sentry
+- Scikit-learn / XGBoost + SHAP
+- MQTT + gerçek sensör
+- Gerçek OCR / lab API
+- Gerçek ödemeler / SMTP prod
+- Sentry, Docker, Supabase Auth
 
 ---
 
@@ -1037,18 +989,11 @@ Model, MVP karar destek prototipi olarak sunulmalıdır.
 
 ### 4. LLM kullanımı zorunlu değildir
 
-Sulama tahmini için üretken yapay zekâ kullanmak gereksizdir.
-
-Temel makine öğrenmesi modelleri daha uygundur.
+Sayısal sulama tahmini kural motorunda kalır. OpenRouter yalnızca isteğe bağlı açıklama zenginleştirmesidir; anahtar yoksa kural metni yeterlidir.
 
 ### 5. Dijital ikiz sadece dashboard değildir
 
-Dijital ikiz katmanı:
-
-- Mevcut durumu göstermeli
-- Geleceği tahmin etmeli
-- Senaryo simülasyonu yapmalı
-- Sonuçlarla güncellenmelidir
+Dijital ikiz katmanı mevcut durum, tahmin, senaryo ve sulama sonrası güncelleme ile çalışır — tam fiziksel/kimyasal ikiz iddiası yoktur.
 
 ---
 

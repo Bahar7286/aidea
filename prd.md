@@ -650,40 +650,20 @@ Ayrıntı: `veri-mimarisi.md` §12.
 
 ---
 
-## 13. Teknik Mimari
+## 13. Teknik Mimari (as-built)
 
-### Frontend
+| Katman | Tercih |
+|--------|--------|
+| Frontend | Next.js App Router + TypeScript + Tailwind + Recharts + Leaflet/OSM |
+| Backend | FastAPI + Pydantic v2 + SQLAlchemy 2.0 + JWT |
+| DB | SQLite yerel · Supabase PostgreSQL prod |
+| AI | Kural motoru (+ OpenRouter açıklama opsiyonel) · ML P2 |
+| Hava | Open-Meteo |
+| IoT | REST /iot/simulate + /iot/ingest |
+| Auth | JWT (Supabase Auth değil) |
+| Deploy | Vercel + Render + Supabase |
 
-- Next.js veya React
-- Alternatif hızlı MVP: Streamlit
-
-### Backend
-
-- Python
-- FastAPI
-
-### Veritabanı
-
-- Supabase / PostgreSQL
-- Alternatif: SQLite
-
-### Yapay zekâ
-
-- Python
-- Scikit-learn
-- XGBoost
-
-### IoT simülasyonu
-
-- MQTT
-- REST API
-- Zamanlanmış Python scripti
-
-### Canlıya alma
-
-- Frontend: Vercel
-- Backend: Render veya Railway
-- Veritabanı: Supabase
+Gübre reçetesi ürün iddiası yoktur; agro malzemeler kullanım kaydıdır.
 
 ---
 
@@ -691,59 +671,57 @@ Ayrıntı: `veri-mimarisi.md` §12.
 
 ### Kimlik doğrulama
 
-- `POST /auth/register`
-- `POST /auth/login`
-- `GET /auth/me`
+- `POST /auth/register`, `/verify`, `/login`, `/demo-login`
+- `GET/PATCH /auth/me`
 
 ### Arazi
 
-- `POST /farms`
-- `GET /farms`
-- `GET /farms/{id}`
-- `PUT /farms/{id}`
-- `DELETE /farms/{id}`
+- `POST /farms` · `GET /farms` · `GET/PUT/DELETE /farms/{id}`
+- `GET /farms/{id}/overview` · `/twin` · `/data-sources`
 
-### Sensör verisi
+### Agro malzemeler / abonelik
 
-- `POST /sensor-readings/{farm_id}`
-- `GET /sensor-readings/{farm_id}`
-- `POST /iot/simulate`
-- `GET /datasets` / `POST /datasets/load` (`source_type: test_dataset`)
+- `GET /agro-materials` · `GET/PUT /farms/{id}/materials` (reçete değil)
+- `GET /billing/plans` · `PUT /billing/plan` (ödeme yok)
+
+### Sensör verisi / hava / dataset
+
+- `POST/GET /sensor-readings/{farm_id}`
+- `POST /iot/simulate` · `POST /iot/ingest`
+- `GET /datasets` · `POST /datasets/load`
+- `GET /weather/{farm_id}` (Open-Meteo)
 
 ### Tahmin ve anomali
 
 - `POST /predict/irrigation` (query: `farm_id`)
 - `GET /predictions/{farm_id}`
 - `GET /anomalies/{farm_id}`
+- `GET /recommendations/{farm_id}` · `GET /hub/{farm_id}`
 
 ### Senaryo
 
-- `POST /simulate/scenario`
+- `POST /simulate/scenario` · `/simulate/custom`
 
 ### Sulama
 
-- `POST /irrigation/start` (`user_approved=true` zorunlu; güven skoru &lt; 60 reddedilir)
+- `POST /irrigation/start` (`user_approved=true`; güven &lt; 60 reddedilir)
 - `POST /irrigation/stop`
-- `GET /irrigation/history/{farm_id}`
+- `GET /irrigation/history/{farm_id}` · `/status/{farm_id}`
 
 ### Cihaz / IoT
 
-- `POST /devices`
-- `GET /devices/{farm_id}`
-- `POST /devices/test-connection`
-- `POST /iot/simulate` (`source_type: simulation`)
-- `GET /datasets` / `POST /datasets/load` (`source_type: test_dataset`)
-- `POST /iot/ingest` (Field Node JSON; `simulation` true/false → `simulation`/`iot`)
+- Devices CRUD + calibrate + test-connection
 
 ### Bölgeler ve laboratuvar (P1)
 
-- `POST /zones`
-- `GET /zones/{farm_id}`
-- `POST /lab-reports` (`user_confirmed=true` + birimli parametreler zorunlu)
-- `GET /lab-reports/{farm_id}`
-- `POST /lab-reports/{id}/confirm`
+- Zones CRUD · lab upload (dosya zorunlu `lab_report`) · confirm
+- Gerçek OCR P2
 
-Referans: `veri-mimarisi.md`, `iot-mimarisi.md`
+### Admin
+
+- `/admin/overview|users|farms|devices|billing|tickets|analytics|settings`
+
+Referans: `veri-mimarisi.md`, `iot-mimarisi.md`, `backend/README.md`
 ---
 
 ## 15. Kullanıcı Deneyimi Gereksinimleri
@@ -877,36 +855,36 @@ MVP başarılı sayılacaktır, eğer:
 
 ### P0 — Zorunlu
 
-- Kayıt ve giriş
+- Kayıt ve giriş / demo-login
 - Arazi oluşturma
 - Manuel veri girişi
 - IoT veri simülasyonu
 - Dashboard
-- Kural tabanlı öneri motoru
-- AI tahmini
-- 72 saatlik nem tahmini
+- Kural tabanlı öneri motoru (+ opsiyonel OpenRouter açıklama)
+- AI tahmini + 72 saatlik nem
 - Senaryo simülasyonu
 - Sanal sulama
-- Canlıya alma
+- Canlıya alma — **tamam**
 
-### P1 — Önemli
+### P1 — Önemli (çoğu tamam)
 
-- Laboratuvar raporu yükleme / manuel lab girişi (birim + onay)
-- Veri güven skoru (lab puanı dahil)
+- Laboratuvar raporu / manuel lab (birim + onay; dosya zorunlu; gerçek OCR P2)
+- Veri güven skoru
 - Anomali tespiti
-- Sulama geçmişi
-- Su tasarrufu raporu
-- Sanal yönetim bölgeleri (basit isimlerle)
+- Sulama geçmişi + su tasarrufu KPI
+- Yönetim bölgeleri
+- Agro malzemeler (reçetesiz)
+- Open-Meteo + Leaflet OSM
+- Admin / abonelik plan UI
 
 ### P2 — Sonraki sürüm
 
-- Gerçek IoT bağlantısı
-- Gerçek hava durumu API’si
-- Lab OCR / lab API entegrasyonu
-- Mikroelement / gelişmiş lab paketi
-- Çoklu tarla yönetimi
-- Gelişmiş raporlama
-- Gübre önerisi (ayrı ürün kararı; reçetesiz yorumdan fazlası)
+- Gerçek IoT / MQTT
+- Gerçek OCR / lab API
+- Gerçek ödeme
+- ML modelleri
+- Gübre reçetesi (ayrı ürün kararı)
+- Uydu / drone
 
 ---
 

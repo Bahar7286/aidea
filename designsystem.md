@@ -12,7 +12,7 @@ Bu doküman, AgriTwin AI ürününün tüm ekranlarında tutarlı, erişilebilir
 - `--risk-low / --risk-medium / --risk-high / --risk-critical`
 - `.card`, `.btn`, `.input` yardımcı sınıfları
 
-Aşağıdaki bölümlerin çoğu hedef tasarım sistemidir; shadcn/ui ve Recharts henüz eklenmemiştir.
+Aşağıdaki bölümlerin çoğu hedef tasarım sistemidir. **As-built:** Tailwind yardımcı sınıfları + Recharts + Leaflet/OSM + lucide ikonlar + AppShell/AdminShell. shadcn/ui tam bileşen kütüphanesi opsiyonel / kısmi.
 
 Tasarım sistemi şu alanları kapsar:
 

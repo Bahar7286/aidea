@@ -8,21 +8,22 @@ Bu doküman, **yerelde çalışan** AgriTwin web MVP’sini uç kullanıcıları
 
 ## 1. Mevcut durum (yerel vs canlı)
 
-| Katman | Yerel (şimdi) | Canlı (hedef) |
-|--------|---------------|---------------|
-| Frontend | `npm run dev` → `localhost:3000` | Vercel HTTPS URL |
-| Backend | `uvicorn` → `localhost:8000` | Render/Railway HTTPS URL |
+| Katman | Yerel | Canlı (as-built) |
+|--------|-------|------------------|
+| Frontend | `npm run dev` → `localhost:3000` | `https://aidea-three.vercel.app` |
+| Backend | `uvicorn` → `localhost:8000` | `https://aidea-f8ji.onrender.com` |
 | DB | SQLite (`sqlite:///./agritwin.db`) | Supabase Postgres (`DATABASE_URL`) |
 | CORS | `http://localhost:3000` | Vercel origin(s) |
-| Auth | JWT + sabit demo kod `123456` | Aynı JWT API; e-posta kodu gerçek SMTP ile (önerilir) |
-| IoT | `POST /iot/simulate`, `source_type: simulation` | Aynı (simülasyon etiketi korunur) |
-| Lab OCR | Simüle extract | Aynı uçlar; gerçek OCR P2 |
-| AI | Kural motoru (`ai/rule_engine.py`) | Aynı; ML sonra backend sürecinde |
-| Seed | `scripts.seed_demo` + `Secret12` | Demo için kontrollü seed; prod kullanıcı verisi ayrı politika |
+| Auth | JWT + demo kod / `demo-login` | Aynı JWT; demo seed + opsiyonel OpenRouter |
+| IoT | `POST /iot/simulate`, `source_type: simulation` | Aynı |
+| Lab | Dosya zorunlu + heuristik / simüle extract | Aynı; gerçek OCR P2 |
+| AI | Kural motoru + opsiyonel OpenRouter | Aynı |
+| Hava / harita | Open-Meteo + Leaflet OSM | Aynı |
+| Seed | `scripts.seed_demo` / `SEED_DEMO_USERS` | Startup + `/auth/demo-login` |
 
-**Zaten canlıya hazır (uygulama tarafı):** kayıt → arazi → veri → sulama önerisi → senaryo → onaylı sanal sulama; pytest yeşil; `/health` var.
+**Zaten canlı:** kayıt/demo → arazi → veri → sulama önerisi → senaryo → onaylı sanal sulama; pytest yeşil; `/health` var.
 
-**Eksik (dış dünya):** cloud hesapları, secret’lar, Postgres URL, CORS/domain, deploy pipeline, (önerilen) gerçek e-posta gönderimi.
+**Kalan (sertleştirme):** gerçek SMTP, Sentry, backup politikası, gerçek ödemeler, jüri sunum provası.
 
 ---
 
@@ -51,15 +52,9 @@ DATABASE_URL=postgresql://postgres:YOUR_PASSWORD@db.YOUR_PROJECT.supabase.co:543
    - `backend/supabase/002_lab_zones_iot.sql`
 2. **Alternatif (hızlı):** Backend ayağa kalkınca `Base.metadata.create_all` modellerden tablo oluşturur (`backend/app/main.py`). SQL dosyaları şema kaydıdır; prod’da tercihen SQL’i önce çalıştırıp drift’i gözden geçirin.
 
-**Paket zorunluluğu (hard blocker):** `backend/requirements.txt` şu an yalnızca SQLite sürücüsü içerir. Postgres için deploy öncesi ekleyin:
+**Postgres sürücüsü:** `psycopg2-binary>=2.9.9` `requirements.txt` içinde **as-built** mevcuttur.
 
-```text
-psycopg2-binary>=2.9.9
-```
-
-(veya SQLAlchemy 2 ile `psycopg[binary]`). Yoksa `DATABASE_URL=postgresql://...` ile süreç ayağa kalkmaz.
-
-**Çalışma yöntemi:** Yerelde SQLite ile geliştirmeye devam; prod’da yalnızca `DATABASE_URL` Postgres’e işaret eder. Kod değişikliği gerekmez (`database.py` zaten URL’e göre `connect_args` ayarlar).
+**Çalışma yöntemi:** Yerelde SQLite; prod’da `DATABASE_URL` Postgres’e işaret eder (`database.py`).
 
 ---
 
@@ -185,7 +180,7 @@ Bu maddeler **P0 go-live’ı engellemez**; önce Vercel + API + Postgres + CORS
 | Girdi | Nem, sıcaklık, yağış ihtimali, son sulama saati, toprak/ürün, veri yaşı, `data_confidence` |
 | Çıktı tipi | `irrigation_needed`, `irrigation_duration` (dk), `risk_level` (`low\|medium\|high\|critical`), `confidence_score` (0–100), Türkçe `explanation`, `moisture_24h/48h/72h` |
 | Çalışma yöntemi | Eşik kuralları (örn. nem &lt; 25 → kritik sulama; nem &gt; 70 → aşırı sulama riski); günlük nem düşüşü ile 72s projeksiyon |
-| Dış model API | **Yok** — LLM veya bulut AI çağrısı yok |
+| Dış model API | **Opsiyonel OpenRouter** — yalnızca Türkçe açıklama; sayısal karar kurallarda. Anahtar yoksa kural metni. |
 
 **Güvenlik sınırları (korunmalı):**
 
@@ -358,31 +353,29 @@ Prod için uzun süre açık kalacaksa Render **paid** veya Railway aylık plan 
 
 ## 10. P0 / P1 / P2 özet tablosu
 
-### P0 — Canlıya çıkmak için dışarıdan şart
+### P0 — Canlıya çıkmak için dışarıdan şart (çoğu tamam)
 
-1. Supabase PostgreSQL + `DATABASE_URL`  
-2. `psycopg2-binary` (veya eşdeğer) bağımlılığı  
-3. Backend host (Render/Railway) + `SECRET_KEY` + `CORS_ORIGINS`  
-4. Frontend host (Vercel) + `NEXT_PUBLIC_API_URL`  
-5. HTTPS (platform varsayılanı)  
-6. Smoke test + (isteğe bağlı) kontrollü `seed_demo`  
+1. ~~Supabase PostgreSQL + `DATABASE_URL`~~
+2. ~~`psycopg2-binary`~~ (`requirements.txt`’te mevcut)
+3. ~~Backend host (Render) + secrets + CORS~~
+4. ~~Frontend host (Vercel) + `NEXT_PUBLIC_API_URL`~~
+5. ~~HTTPS~~
+6. Smoke + `SEED_DEMO_USERS` / `seed_demo`
 
-### P1 — Canlı sonrası erken
+### P1 — Canlı sonrası sertleştirme
 
-- Gerçek e-posta (SMTP/Resend) — demo kodu kaldırma  
-- Hava durumu API  
-- Supabase Storage (lab dosyaları)  
-- Sentry / temel log paneli  
-- Uptime (Render paid) / custom domain  
+- Gerçek e-posta (SMTP/Resend)
+- Supabase Storage (lab dosya kalıcılığı)
+- Sentry / log paneli
+- Uptime / custom domain
 
 ### P2 — Sonraki ürün fazı
 
-- MQTT / gerçek IoT ingest  
-- Google Vision vb. OCR  
-- Leaflet + tile sağlayıcı  
-- Scikit-learn / XGBoost model artifact  
-- Supabase Auth migrasyonu  
-- SHAP  
+- MQTT / gerçek IoT
+- Gerçek OCR
+- Gerçek ödeme
+- ML + SHAP
+- Supabase Auth migrasyonu
 
 ---
 
@@ -390,21 +383,22 @@ Prod için uzun süre açık kalacaksa Render **paid** veya Railway aylık plan 
 
 | Dosya | Rol |
 |-------|-----|
-| `.env.example` | Env isimleri |
-| `techstack.md` §25–34 | Deploy tercihleri |
+| `.env.example` | Env isimleri (`OPENROUTER_*`, `SEED_DEMO_USERS`, …) |
+| `techstack.md` | As-built + roadmap |
 | `plan.md` Faz 10 | Görev listesi |
-| `Progress.md` Faz 10 | Durum (henüz deploy yok) |
-| `DEMO_USERS.md` / `DEMO_CHECKLIST.md` | Demo provası |
-| `TEST_PLAN.md` | Smoke / E2E beklentileri |
-| `veri-mimarisi.md` / `iot-mimarisi.md` | Veri kaynakları ve saha yolu |
+| `Progress.md` Faz 10 | Durum (**canlı URL işaretli**) |
+| `DEMO_USERS.md` / `DEMO_CHECKLIST.md` | Demo |
+| `TEST_PLAN.md` | Smoke / E2E |
+| `veri-mimarisi.md` / `iot-mimarisi.md` | Veri / saha |
 
 ---
 
-## 12. Bu plandan sonra yapılacaklar (uygulama değil)
+## 12. Bu plandan sonra yapılacaklar
 
-1. Cloud hesaplarını açmak (insan + ödeme yöntemi gerekebilir).  
-2. `psycopg2-binary` PR’ı.  
-3. Deploy + `Progress.md` Faz 10 kutularını işaretlemek.  
-4. Auth e-posta entegrasyonu PR’ı.  
+1. Jüri / sunum demosu (`DEMO_CHECKLIST.md`).
+2. SMTP + Sentry sertleştirme.
+3. Gerçek OCR / ödeme / ML — ürün kararına göre P2.
+
+Ayrıntılı durum kaynağı: [`Progress.md`](Progress.md).
 
 **Bu dosya yalnızca plan dokümanıdır; deploy henüz yapılmamıştır.**
